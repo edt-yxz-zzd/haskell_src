@@ -1,0 +1,58 @@
+{-
+st = sym st
+st = st
+final_st = ;
+Start = initial_st -- Start is a virtual st
+
+<nfsm> - to be replaced by a object name when using this nfsm as a subobject
+-}
+
+-- new st
+; M<nfsm>TransitionPrim st1 sym st2
+    --> M<nfsm>NewState st1
+    --> M<nfsm>NewState st2
+; M<nfsm>NullTransitionPrim st1 st2
+    --> M<nfsm>NewState st1
+    --> M<nfsm>NewState st2
+; M<nfsm>NewState st --> M<nfsm>NullTransition st st
+
+-- head extend; Prim -- from input directly
+-- O(n^2) !!
+; M<nfsm>TransitionPrim st1 sym st2 -< I<nfsm>NullTransitionEnd st1
+    <- M<nfsm>NullTransition st0 st1
+        --> M<nfsm>Transition st0 sym st2
+; M<nfsm>NullTransitionPrim s1 st2 -< I<nfsm>NullTransitionEnd st1
+    <- M<nfsm>NullTransition st0 st1
+        --> M<nfsm>NullTransition st0 st2
+
+-- final state head extend; St - state
+; M<nfsm>FinalStPrim st1 -< I<nfsm>NullTransitionEnd st1
+    <- M<nfsm>NullTransition st0 st1
+        --> M<nfsm>FinalSt st0
+
+-- initial/final states collection
+; -< -- M~Output
+    -< I<nfsm>InitialSt st <- M<nfsm>InitialStPrim st
+    -< I<nfsm>FinalSt st <- M<nfsm>FinalSt st
+    -< I<nfsm>StNext st1 <- M<nfsm>Transition st1 sym st2
+
+-- ------------------
+-- interface decl
+; I<nfsm>NullTransitionEnd st1 <- M<nfsm>NullTransition st0 st1
+    >- M<nfsm>NullTransitionPrim
+    >- M<nfsm>TransitionPrim
+    >- M<nfsm>FinalStPrim
+
+-- srcs decl
+; -->
+    --> M<nfsm>InitialStPrim
+    --> M<nfsm>FinalStPrim
+    --> M<nfsm>TransitionPrim
+    --> M<nfsm>NullTransitionPrim
+
+
+
+
+
+
+

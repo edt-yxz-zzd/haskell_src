@@ -1,0 +1,38 @@
+
+-- no recur!
+
+-- type
+XXX ... = ...
+-- var
+f :: ....
+f ... = ...
+
+
+main = (';' decl)*
+decl = type_decl | var_sig | var_def
+type_decl = typeID tv* '=' type_expr
+type_expr = typeID | tv | Top
+            | type_expr '->' type_expr
+            | type_expr type_expr
+            -- | '\' tv* '.' type_expr
+            | '(' type_expr ')'
+            | 'let' (';' type_decl)* 'in' type_expr
+            | 'All' tv* '.' type_expr
+var_sig = varID '::' type_expr
+var_def = varID var* '=' var_expr
+type_sig = typeID '<:' type_expr
+var_expr = var | Top
+            | var_expr var_expr
+            | '\' var_sig* '.' var_expr
+            | var_expr '[' type_expr ']'
+            | '\' type_sig* '.' var_expr
+            | '(' var_expr ')'
+            | 'let' main 'in' var_expr
+            -- | 'All' var* '.' var_expr -- omit
+
+varID = var
+tv = var
+
+
+
+

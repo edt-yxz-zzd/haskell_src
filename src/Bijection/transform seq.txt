@@ -1,0 +1,49 @@
+
+[UInt] mod M :: M >= 1
+len
+    [UInt] mod 1 <-> UInt
+
+split (M-1)
+    [UInt] mod M :: M >= 3
+    <-> [[UInt]] mod M-1 :: (len >= 1, M >= 3)
+    input ([UInt] mod m) <-> (UInt, m)
+    or input ([[UInt]] mod m :: len >= 1) <-> ([UInt] :: len >= 1, m)
+    <-> ([UInt], M-1 :: M >=3) :: len >= 1
+    <-> (M_3 :: UInt, [UInt] :: len >=1)
+    <-> [UInt] :: len >= 2
+
+
+split max
+    [UInt] mod M :: M >= 4
+    <-> if max <= 2
+        then "[0..2]*"
+            => ["[01]*"] :: len >= 1
+        else "[0..max-1]*max[0..max]*"
+            => [[UInt]] mod max :: (3 <= max < M, len >= 2)
+    <-> ([[UInt]] mod 2 :: len >= 1 | [[UInt]] mod max :: (3 <= max < M, len >= 2)) :: M >= 4
+    input ([UInt] mod m >= 2) <-> (UInt, m :: m >= 2)
+    or input ([[UInt]] mod m :: (m >= 2, len >= 1)) <-> ([UInt] :: len >= 1, m :: m >= 2)
+    <-> ([UInt] :: len >= 1 | ([UInt], max) :: (3 <= max < M, len >= 2)) :: M >= 4
+    <-> (Maybe (UInt, max) :: 3 <= max < M, [UInt] :: len >= 1) :: M >= 4
+    input (Maybe (UInt, max :: 3 <= max < M)) <-> (UInt, M :: M >= 4)
+    or input (Maybe (UInt, UInt mod M_3 :: M_3 >= 1)) <-> (UInt, M_3 :: M_3 >= 1)
+    <-> ((UInt, M), [UInt] :: len >= 1) :: M >= 4
+    <-> (M, [UInt] :: len >= 2) :: M >= 4
+    <-> (M-4, [UInt] :: len >= 2) :: M >= 4
+    <-> [UInt] :: len >= 3
+
+
+
+continued-fraction
+    (n :: UInt, d :: PInt) :: coprime(n,d)
+    <-> (UInt, Maybe ([PInt], QInt))
+    <-> [UInt] :: len >= 1
+
+    (n :: UInt, d :: QInt) :: coprime(n,d)
+    <-> (UInt, [PInt], QInt)
+    <-> [UInt] :: len >= 2
+
+    (n :: UInt, d :: PInt, g :: PInt) :: coprime(n,d)
+    <-> (UInt, PInt)
+
+

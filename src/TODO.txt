@@ -1,0 +1,17 @@
+Container
+    folder organize
+        Class/
+        Instance/
+        Container.hs
+            export Class
+            import Instance
+
+List^ = ~Ls^. \n. ...
+
+OpPrint -- to ease debug; ID monad for pure calc; IO monad to debug
+    OpLog??
+OpFilesystem
+typing combinators
+CombinatorSKIBC_std_value
+
+

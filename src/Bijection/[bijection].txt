@@ -1,0 +1,171 @@
+
+stack bijections
+
+uint = int >= 0
+pint = int >= 1
+qint = int >= 2
+nint = int >= -1
+
+[mod_mx -> mod_mx]
+    add const
+    mul const_reversable_mx
+
+[mod_uint -> mod_uint]
+    # mod M
+    add const <-> sub const
+    mul coprimeWithM <-> div coprimeWithM
+    [coprime self M][K*N === 1 mod phi M]:
+        # |= a**phi(M) === 1 mod M
+        # ==>> |= a**(k*phi(M)+1) === a mod M
+        # ==>> [K*N === 1 mod phi(M)] |= a**(K*N) == a mod M
+        pow K <-> pow N
+    factor down
+        via tuple<sums::[pint], products::[qints]>
+            assert sum sums + II products == M
+[offseted_mod_uint -> offseted_mod_uint]
+    # mod, offset
+    via mod_uint
+        offseted_mod_uint - offset ==>> mod_uint
+
+
+[uint -> uint]
+    via offseted_mod_uint
+        via weighed series
+            # index2digit_modulo = m0 m1 m2 ... where m[i] > 0
+            # weighed_series = w0 w1 w2 ... where w[i] = II m[j] {j=0..i-1}
+            #   -- little endian
+            # number of uints encoded in len L is:
+            #   n(L) = II m[i] {i=0..L-1} = w[L]
+            # offset of digits of length L is:
+            #   offset(L) = sum n(i) {i=0..L-1} = offset(L-1)+w[L-1]
+            [offseted_radix_digits] # allow leading 0s
+                index2digit_modulo = repeat B
+            [factorial]
+                index2digit_modulo = [2..]
+            [continued fraction]
+                index2digit_modulo = cf pi
+
+    via int
+        uint2int u = (- (u+1)//2) if odd u else (u//2)
+        int2uint u = (-u)*2-1 if u < 0 else 2*u
+
+    via uints
+        prime pows # too slow
+            u+1 = 2**e0 * 3**e1 ... = II p[i]**e[i] {i}
+            how to handle tail 0s??
+            last non-zero e[x] -= 1 if any
+
+    via tuple<mods::[M], num_uints::pint>
+        via pair
+            (mod_uint, uint) # tuple<[mod_uint], 1>
+                let (payload, num_cases) = divMod u M in (num_cases, payload)
+                then assign each case a method to handle payload
+            (uint, uint) # tuple<[], 2>
+                case offseted_radix_digits.partition(d) of
+                    NotFound -> (0,u)
+                    (h, t) -> (h+1,t)
+
+[weighed series]
+    digit-wise mod_uint
+    [offseted_radix_digits]
+        permutation
+        add const random sequence
+        [offseted_radix_digits<base> -> [offseted_radix_digits<base-1>]]
+            let max = base-1
+            digits.split(max)
+            # map offseted_radix_digits2uint(max) subdigitss
+
+[(uint, uint)]
+    complex
+    NotSquare a+sqrt(b) | Square (a, sqrt(b))
+    (uint, pint)
+        (gcd(a,b), fraction(a/b))
+    via uints
+        [continued fraction]
+
+
+-- [a] ==>> finite many0
+-- 1[a] ==>> finite many1
+-- N[a] ==>> len in [N..], finite
+[offseted_radix_digits<base>] # base >= 1
+    let max = max 0 input_digits
+    base >= 2: [-> Zeros uint | Max max digits<max> digits<max+1>]
+        where max in [1..base-1]
+        <==> uint | uint * uint
+                     +1
+        <==> 1 * uint | pint * uint
+        <==> uint * uint
+    base == 2: [-> MaxLe1 1[uint]]
+    base >= 3: [-> MaxLe1 1[uint] | MaxGe2 max 2[digits<max>]]
+    base >= 3: [-> Zeros uint | Max1 2[uint] | MaxGe2 max 2[digits<max>]]
+        where max in [2..base-1]
+        Zeros uint | Max1 2[uint]
+            <==> uint | 2[uint] <==> 1[uint]
+        {-
+                 +2       +1
+            <==> qint | 2[pint]
+            # can not merge together
+            xxx <==> 2[0|pint]
+            xxx <==> 2[uint]
+        xxx <==> 2[uint|offseted_radix_digits<max>]
+        -}
+        <==> uint | 2[uint] | 2[offseted_radix_digits<max>]
+        <==> uint | 2[uint] | (max::[2..base-1], 2[uint])
+        <==> uint | 2[uint] | (base-2) * 2[uint]
+        1) <==> uint | (base-1) * 2[uint]
+            <==> uint | (base-1) * uint * 1[uint]
+                        mod_uint * uint -> uint
+            <==> uint | uint * 1[uint]
+            <==> uint * [] | uint * 1[uint]
+            <==> uint * [uint]
+            <==> 1[uint]
+        2) <==> 1[uint] | (base-2) * 2[uint]
+            <==> uint * [uint] | (base-2) * 2[uint]
+                        mod_uint * uint -> uint
+            <==> uint * [uint] | uint * 1[uint]
+            <==> ??????????!!!!!!!!!!1
+
+
+        so we get:
+            uint <==> 1[uint]
+            +1
+            pint <==> 1[uint]
+            0|pint <==> [] | 1[uint]
+            uint <==> [uint]
+
+
+
+
+
+data Size = SU uint | Countable
+static size_of :: Type -> Size
+data Type = TStruct Struct | TAtom Atom
+data Struct = Record {Name:Type...} | Sum <Type...> | Product <Type...>
+data Atom = OneOf <SInt, NInt, UInt, PInt, QInt, ModUInt<pint> >
+    -- SInt == ModUInt<0> ??
+type RadixBase = PInt -- base
+type OffsetedRadixDigits<radix::RadixBase> -- = [digit::ModUInt<radix>]
+    = Product [ModUInt<radix>]
+
+size_of (TAtom ModUInt<base>) = SU base
+size_of (TAtom _) = Countable
+size_of (TStruct (Sum<Type...>)) = as below
+size_of (TStruct (Record<Type...>)) =
+    if Countable `elem` <Type...> then Countable
+    else sum $ map size_of <Type...>
+size_of (TStruct (Product<Type...>)) =
+    if Su 0 `elem` <Type...> then Su 0 else
+    if Countable `elem` <Type...> then Countable
+    else product $ map size_of <Type...>
+
+
+
+
+
+
+
+
+
+
+
+

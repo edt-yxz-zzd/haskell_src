@@ -1,0 +1,15 @@
+
+Success | Fail | ShouldBe | Unknown
+
+ArrowZero
+ArrowPlus
+
++++ = <+>
+lhs <++ rhs = if any lhs is ShouldBe|Success then lhs
+                elif all lhs is Fail then rhs
+                elif lhs are some Unknown and others Fail then lhs <++rhs
+
+ma >>> ShouldBe >>> ...
+... >>> usingShouldBe ma >>> ...
+
+

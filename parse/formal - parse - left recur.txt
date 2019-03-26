@@ -1,0 +1,466 @@
+when left recur ?
+    A = B? C? D ...
+    D = E? F? A ...
+
+
+type sym = Either n t
+type rule = [sym]
+type right_context = [sym]
+
+
+X - nonterminal
+    :: n
+X-i - i-th rule about X -- i.e. grammar = Map n [rule]
+    :: rule
+rulesAt :: n -> [rule]
+nullable :: n -> Bool
+nullable = any null . rulesAt
+
+'X - generated nonterminal with nonnull rule about X
+    :: n
+    rulesAt 'X = filter (not . null) $ rulesAt X
+?X - generated nonterminal with null rule about X
+    :: n
+    rulesAt ?X = filter null $ rulesAt X
+
+_X - generated nonterminal
+    :: n
+    rulesAt _X  = [rule |_:rule <- rulesAt X]
+                = map tail $ rulesAt 'X
+
+
+
+-- without left recur
+-- [sym] - right_context
+success :: [[sym]] -> Bool
+success = any null
+parse11 :: t -> [sym] -> [[sym]]
+    parse11 t (Left n : right_context) =
+        -- without left recur
+        -- merge_lsls $ map (parse11 t)
+        parse1s
+            [rule++right_context | rule <- rulesAt n]
+    parse11 t (Right t' : right_context) | t' == t = [right_context]
+    parse11 _ _ = []
+
+parse1s :: t -> [[sym]] -> [[sym]]
+parse1s t = merge_lsls $ map (parse11 t)
+parsess :: [t] -> [[sym]] -> [[sym]]
+parsess ts cnts = foldl (flip parse1s) cnts ts
+parse :: [t] -> sym -> [[sym]]
+parse ts sym = parsess ts [sym]
+
+
+
+
+
+
+
+
+
+
+
+-- with left recur; without null production
+X-i = head : tail
+
+treat nonterminal head as state
+treat tail as a terminal ==>> left-linear grammar, i.e. FS
+X-i = Y : tail ==>> "Y tail <- X"
+X-j = rule@(a : tail) ==>> "rule <- X" or "a tail <- X"
+-- no !!! X-k = rule@([]) ==>> "rule <- X" or "[] <- X"
+-- since we want regex beginswith terminal to avoid infinite expand
+
+==>> X <= or [a : regex [tail X-i, tail Y-k...]
+             | a <- map head $ rulesAt X, terminal a]
+==>> X <= or [a : regex [_X-i, _Y-k...]
+             | a <- map head $ rulesAt X, terminal a]
+
+type Tail n t = Rule n t
+data Regex a  = | T a
+                | Con [Regex a]
+                | Alt [Regex a]
+                | Star (Regex a)
+left-linear grammar
+    ==>> Regex (Either (Tail n t) (Maybe t))
+    ==>> Regex (Either n t)
+    T (Left tail) = Con $ map T tail
+    T (Right (Just t)) = T (Right t)
+    T (Right Nothing) = Con []
+type regex = Regex (Either n t)
+regexAt :: n -> regex
+    -----------------  build it!! s.t.
+    -- @return: only Alt [...Cons [...(T _ : _)]]
+re_nullable :: regex -> Bool
+re_nullable (T _) = False
+re_nullable (Con es) = all re_nullable es
+re_nullable (Alt es) = any re_nullable es
+re_nullable (Star _) = True
+
+-- update
+success :: [regex] -> Bool
+success = any re_nullable
+parse11 :: t -> regex -> [regex]
+    -- <==> Alt [regex]
+    -- why not regex?? only Alt simplify self-recur
+parse11 t (Con []) = []
+parse11 t (Con (e:res)) = merge_lsls [r1, r2] where
+        r1 = map (Con . (:res)) (parse11 t e)
+        r2 = if re_nullable e then parse11 t (Con res) else []
+parse11 t (Alt res) = parse1s t res
+parse11 t s@(Star re) = map (\e->Con [e, s]) $ parse11 t re
+parse11 t (T (Right t')) = if t'==t then [Con []] else []
+parse11 t (T (Left x)) =
+    [ Con res
+    | Alt cons <- regexAt x
+    , Con (T t' : res) <- cons
+    , t'==t]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- with left recur; with null production
+null parse tree can be complex
+so we assume at mose one null per X
+and the rule is default "pass"
+i.e. "X -> ?A ?B" then we only add rule "?X=;"
+
+elimate null
+X-i = Y Z B A ==>>
+'X-i-0 = 'Y Z B A
+'X-i-1 = ?Y 'Z B A
+'X-i-2 = ?Y ?Z 'B A
+'X-i-3 = ?Y ?Z ?B 'A
+no 'X-i-4 !!
+X-j = Y Z a ... ==>>
+'X-j-0 = 'Y Z a ...
+'X-j-1 = ?Y 'Z a ...
+'X-j-2 = ?Y ?Z a ...
+no 'X-j-3
+
+X -> ?X | 'X
+'X -> ... | 'X-i-j
+nullable X <==> exist rule "?X = ;"
+
+-- update
+rulesAt' :: n -> [rule]
+rulesAt' x = rulesAt' ?x ++ rulesAt' 'x
+rulesAt' ?x = if nullable x then [[]] else []
+rulesAt' 'x = [ 'head : tail
+              | rule <- old_rulesAt 'x, (head:tail) <- tails rule]
+
+regexAt' :: n -> regex -- build it using rulesAt'
+parse11 :: t -> regex -> [regex] -- like above; but using regexAt'
+
+
+
+
+
+loops / unit rule
+S = A
+A = S
+S = a
+
+-- all not null!
+'S = 'A
+    'S = ?A -- del
+'A = 'S
+    'A = ?S -- del
+'S = a
+-- ?A and ?S not exist
+
+
+'A 'S I F
+'S "<I-0>" <- I
+'A "<S-0>" <- 'S  -- rule [X = Y Z...] ==>> [Y "Z...<X-i>" <- X]
+F "a<S-1>" <- 'S
+'S "<A-0>" <- 'A
+
+-- init
+Rex(I -> 'S, 0) = "<I-0>"
+Rex('S -> 'A, 0) = "<S-0>"
+Rex('S -> F, 0) = "a<S-1>"
+Rex('A -> 'S, 0) = "<A-0>"
+
+-- remove 'A
+Rex(I->'S, 1) = Rex(I->'S, 0) \/ Rex(I->'A, 0) . Rex('A->'A, 0)* . Rex('A->'S, 0)
+    = "<I-0>" \/ {}.{}*."<A-0>"
+    = "<I-0>"
+Rex(I->F, 1) = Rex(I->F, 0) \/ Rex(I->'A, 0) . Rex('A->'A, 0)* . Rex('A->F, 0)
+    = {} \/ {} . {}* . {}
+    = {}
+Rex('S->'S, 1) = Rex('S->'S, 0) \/ Rex('S->'A, 0) . Rex('A->'A, 0)* . Rex('A->'S, 0)
+    = {} \/ "<S-0>" . {}* . "<A-0>"
+    = "<S-0><A-0>"
+Rex('S->F, 1) = Rex('S->F, 0) \/ Rex('S->'A, 0) . Rex('A->'A, 0)* . Rex('A->F, 0)
+    = "a<S-1>" \/ "<S-0>" . {}* . {}
+    = "a<S-1>"
+
+
+-- remove 'S
+Rex(I->F, 2) = Rex(I->F, 1) \/ Rex(I->'S, 1) . Rex('S->'S, 1)* . Rex('S->F, 1)
+    = {} \/ "<I-0>" . "<S-0><A-0>"* . "a<S-1>"
+    = "<I-0>(<S-0><A-0>)*a<S-1>"
+flip Rex ==>> "<S-1>a(<A-0><S-0>)*<I-0>"
+all <...> are marks that match empty string
+    so "(<A-0><S-0>)*" is an empty string
+    but it indicates there are infinite derived trees
+ <I-0>
+ <S-0>
+ <A-0>
+ .....
+ <S-0>
+ <A-0>
+ <S-1>
+   a
+
+
+
+
+S = A
+S = B a b c
+S = d e f A
+S = g
+A = B
+B = S
+    ==>> S = (d e f)* g (a b c)*
+
+B A S I F
+R(I->S, 0) = <I-0> == ""
+R(S->A, 0) = <S-0>  where <S-0> == ""
+R(S->B, 0) = <S-1>  where <S-1> == "a b c"
+R(S->F, 0) = <S-2>  where <S-2> == "d e f A"
+R(S->F, 0) = <S-3>  where <S-3> == "g"
+R(A->B, 0) = <A-0>  where <A-0> == ""
+R(B->S, 0) = <B-0>  where <B-0> == ""
+
+-- remove B : Rex(B->B, 0)* = {}* = ""
+R(I->S, 1) = <I-0> \/ {} ... = <I-0>
+  R(I->A, 1) = {}
+  R(I->F, 1) = {}
+R(S->S, 1) = {}\/<S-1>.{}*.<B-0> = <S-1><B-0>
+R(S->A, 1) = <S-0>\/<S-1>.{}*.{} = <S-0>
+R(S->F, 1) = {<S-2>, <S-3>}\/<S-1>.{}*.{} = <S-2>\/<S-3>
+R(A->S, 1) = {}\/<A-0>.{}*.<B-0> = <A-0><B-0>
+  R(A->A, 1) = {}\/<A-0>.{}*.{} = {}
+  R(A->F, 1) = {}\/<A-0>.{}*.{} = {}
+
+
+-- remove A : Rex(A->A, 1)* = {}* = ""
+              Rex(S->A, 1) = <S-0>
+              Rex(A->S, 1) = <A-0><B-0>
+              update R(S->S,2); others not changed
+R(I->S, 2) = <I-0>
+R(S->S, 2) = <S-1><B-0>\/<S-0><A-0><B-0>
+R(S->F, 2) = <S-2>\/<S-3>
+
+-- remove S
+R(I->F, 3) = {}\/<I-0>(<S-1><B-0>\/<S-0><A-0><B-0>)*(<S-2>\/<S-3>)
+    = <I-0>(<S-1><B-0>|<S-0><A-0><B-0>)*(<S-2>|<S-3>)
+    = <I-0>(<S-[a b c]-1><B-0>|<S-0><A-0><B-0>)*(<S-[d e f A]-2>|<S-[g]-3>)
+
+R[S] = flip tails in R but not flip symbols in tail = 
+    (<S-[d e f A]-2>|<S-[g]-3>)(<B-0><S-[a b c]-1>|<B-0><A-0><S-0>)*<I-0>
+    1) match d e f A or g ==>> a tree rooted by S: Tree S ...
+    2) then match a b c or pure loops
+        first branch ==>> apply B-0 i.e. let the prev S-tree as the B tree child
+            Tree B [Tree S ...], push it into stack
+            if match a b c, push them into stack
+            apply S-1, pop B a b c
+            Tree S [Tree B [Tree S...], a, b, c]
+            push S tree
+        second branch
+            pop S tree
+            make B tree -- B-0
+            make A tree -- A-0
+            make S tree -- S-0
+            Tree S [Tree A [Tree B [Tree S ...]]]
+    3) then apply I-0
+        pop S tree
+        make I tree: Tree I [Tree S [...]]
+        but since this is the top most, or just before return to caller
+        so we unpack the I tree
+        push S tree back
+    too tedious!
+    only visit a branch when it is not nullable
+    remove null branches // contain marks only
+    ==>> R[S] = (<S-[d e f A]-2>|<S-[g]-3>)(<B-0><S-[a b c]-1>)*<I-0>
+
+R[A], R[B] are required
+below are ill-formed
+    R[A] = <A-[B]-0>
+    R[B] = <B-[S]-0>
+    compare with R[S]
+    every whole branches begin with a terminal
+so, we should compute R[A], R[B] in the way just like
+
+B A S IS IA IB F -- IS IA IB are sources, F is sink, never between path
+remove B A S hence we get IS IA IB
+
+really? need to covert R[A] R[B]??
+No! what we want is to elimate left recur
+we can find out min num nonterminals to convert to regex
+digraph ==>> strong connected components ==>> remove min num to dag
+    find min exactly at least as hard as NP-complete
+    <==> vertex covert
+    show:
+        ugraph replace each uedge by a pair of dedges (i.e. a cycle contain two nodes)
+        the min num to dag ==>> min of vertex covert
+
+standard form:
+    R[X] = a ... | Y ... where 0 <= norm(Y) < norm(X) or Y ~<~ X
+
+
+
+
+
+
+
+elimate duplicate regex in [regex]
+consider right-linear grammar:
+    [regex] ==>> [T (Left n) | Con [T (Left n)] | Con []]
+    so many duplicates each iter!!!
+complicate:
+    e <-> Con [e]
+    e <-> Alt [e]
+    Alt [..e..] <-> Alt [..e1,e2..] where e1 \_/ e2 ~==~ e
+    Con [..e..] <-> Con [..e1,e2..] where Con [e1,e2] ~==~ e
+    Star e <-> Alt [Con[], Con [e, Star e]]
+most shortest
+T a
+Con []
+Alt []
+shortest Con es ==>> all shortest es && noCon es
+shortest Alt es ==>> all shortest es && noAlt es
+                        && && sorted es && noduplicates es
+
+rewrite:
+Con [e] -> e
+Alt [e] -> e
+Star (Con []) -> Con []
+Star (Alt []) -> Con []
+Star (Star e) -> Star e
+Con [.., Alt [], ..] -> Alt []
+
+Con [.., Con ls, ..] -> Con [.., *ls, ..]
+Alt [.., Alt ls, ..] -> Alt [.., *ls, ..]
+Alt es -> Alt sort es
+Alt [.., e, e, ..] -> Alt [.., e, ..]
+e1 ~<=~ e2 ==>>
+    Alt [.., e1,.., e2, ..] -> Alt [.., e2, ..]
+    Alt [.., e2,.., e1, ..] -> Alt [.., e2, ..]
+
+
+
+Alt [..,Con [e,..],Con [e,..],..] -> Alt [..,Con [e,Alt [..,..]],..]
+Alt [..,Con [..,e],Con [..,e],..] -> Alt [..,Con [Alt [..,..],e],..]
+Alt [..,e, ..... Con [e,..],..] -> Alt [..,Con [e,Alt [Con [],..]],..]
+Alt [..,e, ..... Con [..,e],..] -> Alt [..,Con [Alt [Con[],..],e],..]
+Alt [..,Con [~a~, e, Star e, ~b~],Con [~a~, ~b~],..]
+ or Alt [..,Con [~a~, ~b~],Con [~a~, e, Star e, ~b~],..]
+    ==>> Alt [..,Con [~a~, Star e, ~b~],..]
+Con [..,Star e,e,..] -> Con [..,e,Star e,..]
+Con [..,Star (Con es),*es,..] -> Con [..,*es,Star (Con es),..]
+e1 ~<=~ e2 ==>>
+    Con [..,Star e1,Star e2,..] -> Con [..,Star e2,..]
+    Con [..,Star e2,Star e1,..] -> Con [..,Star e2,..]
+Con[] ~<=~ Con e1s ~<=~ Star e2 ==>>
+  or Con e1s ~==~ e2 ==>>
+    Con [..,*e1s,Star e2,..] -> Con [..,Star e2,..]
+    Con [..,Star e2,*e1s,..] -> Con [..,Star e2,..]
+
+
+re_null = Con []
+re_dead = Alt []
+re_simplify :: Ord a => regex -> regex
+re_simplify e@(T _) = e
+re_simplify e@(Con []) = e
+re_simplify e@(Alt []) = e
+re_simplify (Con [e]) = re_simplify e
+re_simplify (Alt [e]) = re_simplify e
+re_simplify (Star (Star e)) = re_simplify (Star e)
+re_simplify (Star e) = case re_simplify e of
+    Con [] -> re_null
+    Alt [] -> re_null
+    Star e' -> Star e'
+    e' -> Star e'
+re_simplify (Con es) = where
+    es' = map re_simplify es
+    es'' = concat $ map expand_con es'
+    expand_con (Con es) = es
+    expand_con e = [e]
+
+
+
+
+
+
+
+
+
+
+
+-- arg d2ns: min len{n | forall d, n in d2ns d}
+arg :: Set a -> (Set v -> Set v) -> (a -> v) -> (Set a)
+arg args select f =
+    filter (\a -> member (f a) . select $ fmap f args) args
+
+
+FSA -> NFSA with min states
+given:
+    tdd :: t -> d -> d
+find out one element of d2ns_set':
+    d2ns :: d -> {n}
+    tnns :: t -> n -> {n}
+    nns :: n -> ns
+    d2ns_set = arg (forall d2ns): min len{n | forall d, n in d2ns d}
+    d2ns_set' = arg d2ns_set: min sum len tnns t n {forall t n} + sum len nns n {forall n}
+    s.t.
+        [complete]:
+            d2ns === complete . d2ns
+        [injection d2ns]
+            forall d, d' ==>> d == d' <--> d2ns d == d2ns d'
+        [homomorphism]
+            forall t ==>> d2ns . tdd t === complete . tnsns t . d2ns
+        ==>> isomorphism
+        where
+        tnsns t ns = union $ map (tnns t) ns
+        complete ns = if ns' == ns then ns else complete ns' where
+            ns' = union $ ns : map nns ns
+        complete_tnsns t = complete . tnsns t
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

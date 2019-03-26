@@ -1,0 +1,30 @@
+-- V - Value; P - property
+VStateB s v | s -> v
+VStateB s v => VStateR s v
+vget :: s -> v
+VStateB (p v) v => VStatePB p v | p -> v -- auto if p->v??
+VStateR (p v) v, VStatePB p v => VStatePR p v -- auto
+-- vget :: p v -> v
+
+
+VCaseB bs
+vcaseb :: bs q v -> bs p u
+VStatePB (bs name) v, VCaseB bs => VPropertyB bs name v -- auto
+vcase :: (VPropertyB bs name' u) => bs name v -> bs name' u
+(VStatePR (bs name) v, VPropertyB bs name v) => VPropertyR bs name v -- auto
+
+newtype VPropertyBox s attrs v = VPropertyBox s
+
+instance VStateB (VPropertyBox s SelfF) s
+instance VStateB p v => VStateB (VPropertyBox (p v) Wrapped) v
+instance VStateR (VPropertyBox s SelfF) s
+instance VStateR p v => VStateR (VPropertyBox (p v) Wrapped) v
+
+
+instance (VStateB (VPropertyBox s attr1) v, 
+          VStateB (VPropertyBox v attr2) u)
+    => VStateB (VPropertyBox s (Child attr1 attr2)) u
+
+instance (VStateR (VPropertyBox s attr1) v, 
+          VStateR (VPropertyBox v attr2) u)
+    => VStateR (VPropertyBox s (Child attr1 attr2)) u

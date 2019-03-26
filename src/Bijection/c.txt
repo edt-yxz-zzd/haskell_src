@@ -1,0 +1,56 @@
+
+
+
+// assume in type domain
+// Int == Integer
+// [a] is finite
+// every thing should not suck
+// >=< is or struct equal
+
+
+weak head normal form
+len ls i
+    forall a, n.
+    ls = {type=[a], len_le=n, all_whnf_will_halt=True} = {..., len <= n}
+        # require finite, halt
+    a = {}
+    n = {type=Int, ge = 0} = {Int, >= 0}
+    i = {Int, >=0}
+
+export{
+    len (a:ls) = 1+len ls{len_le=n-1}
+    len [] = 0
+    proof: ls{len_le}
+}
+
+
+may_len ls i
+
+
+
+
+index :: Int >= 0 -> [a] -> Maybe a
+index _ [] = Nothing
+index 0 (a:ls) = Just a
+index i (a:ls) = case i of
+    0 -> Just a
+    > 0 -> index (i-1) ls
+
+
+take :: Int -> [a] -> [a]
+take {i :: Int, ls::[a], ls'::[a]}
+    1)
+        length_le ls' max(i,0)
+        length_le ls' ls
+    2) case i of
+        i <= 0 => ls' >=< []
+        i > 0 => length ls' == min i (length ls)
+        i >= length ls => ls' >=< ls
+        any 0 <= j < ls' -> index j ls' `is` index j ls
+take :: (Int :: <= 0) -> [a] -> ([a] :: == [])
+take :: (Int :: > 0) -> [a] -> ([a] :: this.len <= )
+take i ls
+    @(Int <= 0) _ = []
+    @(
+
+

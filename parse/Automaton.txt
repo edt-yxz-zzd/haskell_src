@@ -1,0 +1,39 @@
+
+Transition input output = (input, output)
+below: transition means an associate list [Transition input output]
+
+
+DFA st sym a
+    initial :: a -> st          -- initial :: st
+    |- :: a -> sym -> st -> st  -- transition :: {(sym, st) : st}
+    is_final :: a -> st -> Bool -- finals :: {st}
+                                -- conf = ([sym], st)
+                                -- accepted = {([], st) | st in finals}
+NDFA st sym a
+    initials :: a -> {st}
+    |- :: a -> Maybe sym -> st -> {st}
+    is_final :: a -> st -> Bool
+    -- conf = ([sym], st) -- but at same time: {conf}
+    -- accepted ([], st) = st in finals
+    -- accepted otherwise = False
+    -- accepteds {conf} = any accepted {conf}
+
+NPDA val st sym a
+    initials :: a -> {st}
+    -- transition :: {(Maybe sym, st, [val]) : {(st, [val])}}
+    -- transition :: {(Maybe sym, st) : {[val] : {(st, [val])}}}
+    |- :: a -> Maybe sym -> st -> [val] -> {(st, [val])}
+        -- auto -> input -> state -> stack -> confs
+        -- { (st', vals'+tail)
+        -- | (vals, confs) <- transition[(input, state)].items()
+        -- , vals ++ tail == stack
+        -- , (st', vals') <- confs
+        -- }
+    is_final :: a -> st -> Bool
+    -- conf = ([sym], st, [val])
+    -- accepted ([], st, []) = st in finals
+
+
+
+
+

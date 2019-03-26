@@ -1,0 +1,111 @@
+
+convert to regex
+
+digraph
+strong connected components
+each component:
+    left/right linear?
+    convert to regex
+
+
+
+
+
+
+
+
+data ParseResult 
+
+
+RegexL : Rule*
+Rule : Beg Name Eq Regex
+Regex : Concats (Or Concats)*
+Concats : Atom_Mark*
+Atom_Mark : Atom Mark?
+Atom : Group | Name | Token
+Group : GLeft Regex GRight
+Mark : Star | Cross | Option
+
+Beg : ';'
+Eq : '=' -- or '|'
+Or : '|'
+GLeft : '('
+GRight : ')'
+Star : '*'
+Cross : '+'
+Option : '?'
+Token
+Name
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+rules2name2re :: Map name (Re name) -> Set name -> ([name], Map name (Re name))
+--               rules              nonterminals  (reversed_ordering, name2re)
+
+rules2name2re rules nonterminals = M.unions name2re_ls where
+    g = from_dedges nonterminals . S.fromList $ map (rule2dedges nonterminls) (M.toList rules)
+    sccs = reversed_topologic_ordering_sccs g
+    -- [(subgraph, scc/subvertices/subnonterminals, subrules)]
+    subgraph_infos = [(subgraph_from_vertices scc g, scc, ?map_intersect_keys scc rules) | scc <- sccs]
+    name2re_ls = map (uncurry3 scc2name2re) subgraph_infos
+
+rule2dedges :: Set name -> (name, Re name) -> [(name, name)]
+from_dedges :: Set v -> Set (v, v) -> DiGraph v
+reversed_topologic_ordering_sccs :: DiGraph v -> [NonNullSet v]
+subgraph_from_vertices :: Set v -> DiGraph v -> DiGraph v
+map_intersect_keys :: Set k -> Map k v -> Map k v
+scc2name2re :: DiGraph v -> Set v -> Map v (Re v) -> Map v (Re v)
+scc2name2re g nonterminals rules = r where
+    b_is_right_linear = is_right_linear nonterminals rules
+    b_is_left_linear = is_left_linear nonterminals rules
+    b_err = not b_is_right_linear && not b_is_left_linear
+    to_right_linear =   if b_is_right_linear then right_to_right_linear
+                        else if b_is_left_linear then left_to_right_linear
+                        else error "not right/left linear"
+    rules' = to_right_linear nonterminals rules
+    rules'' = right_linear_scc2name2re g nonterminals rules'
+    r = if b_is_right_linear then ...unwrap
+        else ...unwrap . re_reverse
+right_to_right_linear, left_to_right_linear :: Set v -> Map v (Re v) -> Map v (Map (Maybe v) (Re (Wrap (Re v))))
+is_right_linear, is_left_linear :: Set v -> Map v (Re v) -> Bool
+right_linear_scc2name2re :: DiGraph v -> Set v -> Map v (Map (Maybe v) (Re a)) -> Map v (Re a)
+right_linear_scc2name2re g nonterminals rules = r where
+    -- assert S.size nonterminals == M.size rules > 0
+    r = if S.size nonterminals == 1 then rules else r'
+    v0 = find_snd_max [(v, out_degree v g) | v <- S.fromList nonterminals]
+
+    -- remove v0
+    -- add I, F -- I=I[v0]
+    names = S.insert I . S.insert F $ S.map WrapN nonterminals
+    wrap_maybe_keys = M.mapKeys (maybe F WrapN)
+    wrap_keys = M.mapKeys WrapN
+    rules' = M.insert I (M.singleton v0 re_null) $ M.map wrap_maybe_keys $ wrap_keys rules
+    reI = right_linear_IF2reI names rules'
+    -- v0 : reI
+    -- g\\v0, nonterminals\\v0, rules\\v0
+    r' = M.insert v0 reI $ right_linear_rules2name2re (g\\v0) (nonterminals\\v0) (rules\\v0)
+
+data WrapName name = WrapN name | I | F
+right_linear_IF2reI :: Set (WrapName name) -> Map (WrapName name) (Map (WrapName name) (Re a))
+right_linear_rules2name2re :: DiGraph name -> Set name -> Map name (Map (Maybe name) (Re a)) -> Map name (Re a)
+right_linear_rules2name2re rules nonterminals = M.unions name2re_ls where
+    sccs = reversed_topologic_ordering_sccs g
+    -- [(subgraph, scc/subvertices/subnonterminals, subrules)]
+    subgraph_infos = [(subgraph_from_vertices scc g, scc, ?map_intersect_keys scc rules) | scc <- sccs]
+    name2re_ls = map (uncurry3 right_linear_scc2name2re) subgraph_infos
+
+

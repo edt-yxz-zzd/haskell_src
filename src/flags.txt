@@ -1,0 +1,60 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
+
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE Arrows #-}
+import Control.Arrow
+import Control.Category
+import Prelude hiding ((.), id)
+
+{-# LANGUAGE NamedFieldPuns #-}
+
+
+
+
+--type role C/T phantom representational nominal
+{-# LANGUAGE RoleAnnotations #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE DeriveLift #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
+
+
+
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ExistentialQuantification #-}
+
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE TypeInType #-}
+:set -fprint-equality-relations
+:set -fprint-explicit-kinds
+:set -i=src_path
+import Data.Kind (type (*))
+import GHC.Types (type (~~))
+
+

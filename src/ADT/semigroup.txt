@@ -1,0 +1,285 @@
+semigroup
+    a(bc)=(ab)c
+    a . b $ c = a b $ c
+
+    !! a . b = a b !!
+    !! f(a) . f(b) == f(f(a) b) !! -- f(a) - func of a
+        f :: g -> (g->g)
+        compare as function
+        since there are a =/= b but f(a)==f(b)
+    id a = a = id . a = a . id
+    a id =?= a . id = a
+    err a = err = err . a
+    a err =?= a . err
+    a err x =?= a (err x) == a err
+    a err =?= const (a err) = g = const g
+order, commutative, with id, with err
+n c e x
+total = n**(n*n)
+1 T T T
+    a
+2
+    -- 1 const2 a; 2 min (and); 4 const (first); 6 const id (last);
+    -- 7 xor; 8 max (or); 10 nxor; 16 const2 b
+    -- const2 a/b; min/max; first/last; xor/nxor
+    1
+    * = const2 a
+    g = const a
+    ls = .{2,}-> a
+    a a
+    a a
+        g x = a = const a
+        g . x = const a
+
+    2
+    * = min; &&
+    a = const a; b = id
+    ls = any a; all b; b+ -> b | _ -> a
+    a a
+    a b
+        a x = a = const a
+        a . x = const a
+        -- b = id need not check it at begining
+
+
+    3
+    -- error
+    -- a=ab=(bb)b=b(bb)=ba=b
+    a a
+    b a
+        a = const a; b = not
+        b b = not b = a = const a
+        b . b = not . not = id
+
+    4
+    * = const
+    g = const g
+    ls = x.* -> x  -- first
+    a a
+    b b
+        g g = g = const g
+        g . g = const g
+
+    5
+    -- error
+    -- a=ba=b(bb)=(bb)b=ab=b
+    a b
+    a a
+        a = id; b = const a
+        b b = a = id
+        b . b = const a
+
+
+    6
+    * = const id; flip const
+    g = id
+    ls = .*x -> x  -- last
+    a b
+    a b
+
+    7
+    * = xor
+    a = id; b = not
+    ls = [ab]* -> a*b* ; odd num of b's
+    a b
+    b a
+        b b = a = id
+        b . b = id
+
+    8
+    * = max; ||
+    a = id; b = const b
+    ls = all a
+    a b
+    b b
+        b b = b = const b
+        b . b = const b
+
+    9
+    -- error
+    -- a=ab=(ab)b=a(bb)=aa=b
+    -- b=aa=(bb)a=b(ba)=ba=a
+    b a
+    a a
+        a = not ; b = const a
+        b b = a = not
+        b . b = const a
+        a b = a = not
+        a . b = const b
+
+    10
+    * = nxor
+    a = not; b = id
+    ls = [ab]*->a*b*
+    b a
+    a b
+        a b = a
+        a . b = a
+        a a = b = id
+        a . a = id
+
+    11
+    -- error
+    -- b=ba=(aa)a=a(aa)=ab=a
+    b a
+    b a
+        g = not
+        g g = g = not
+        g . g = id
+
+    12
+    -- error
+    -- b=ba=(aa)a=a(aa)=ab=a
+    b a
+    b b
+        a = not; b = const b
+        a a = not a = b = const b
+        a . a = id
+
+    13
+    -- error
+    -- a=ba=(aa)a=a(aa)=ab=b
+    b b
+    a a
+        g = const $ not g
+        g g' = not g
+        g . g' = g
+
+
+    14
+    -- error
+    -- a=ba=(ab)a=a(ba)=aa=b
+    b b
+    a b
+        a = const b; b = id
+        a b = b = id
+        a . b = a = const b
+
+    15
+    -- error
+    -- a=bb=(ab)b=a(bb)=aa=b
+    b b
+    b a
+        a = const b; b = not
+        a b = b = not
+        a . b = a = const b
+
+    16
+    * = const2 b
+    g = const b
+    ls = .+ -> b
+    b b
+    b b
+        g g = b = const b
+        g . g = const b
+
+
+3
+    left_mul_id = id
+        -- row: table[left_mul_id] = [0..]
+    left_mul_err = const left_mul_err
+        -- row: table[left_mul_err] = [left_mul_err]*n
+        -- any g = const g is a left_mul_err
+    left_mul_id g = g
+    left_mul_id . g = g = left_mul_id g
+    left_mul_err g = left_mul_err = const left_mul_err
+    left_mul_err . g = const left_mul_err = left_mul_err g
+    g . left_mul_id = f(g) =?= f(g left_mul_id)??
+        let left_mul_id == 0 then
+        table[g] =?= table[table[g][0]]
+        if both left/right_mul_id, then CORRECT
+    let h = g . left_mul_err
+        h x = h (left_mul_err x) = h left_mul_err = h _
+        h = const (h _)
+        f(g left_mul_err) =?= g . left_mul_err = const sth
+            NOTE: sth may not be (g left_mul_err)
+            so, (g left_mul_err) is not a left_mul_err
+        let left_mul_err = -1
+            <==> table[table[g][-1]] =?= [sth]*n
+        if both left/right_mul_err, then CORRECT
+
+    if {a=mul_id, mul_err=c}
+        commutative
+        a b c
+        b ? c
+        c c c
+            ? = [abc]
+            b b =?= b . b
+            b b = ?
+            ?b=(bb)b = b(bb)=b?
+            -- 3
+            total: 3  * 3! *1 = 18
+                -- no dual, since it's dual is itself
+            invalid: 0
+            pass: 18
+    if {a=mul_id, left_mul_err=c}
+        a b c
+        b ? (?=/=c)
+        c c c
+            table[table[g][-1]] =?= [sth]*n
+            ==>> both ? should be "b"
+            ?? = bb ==>> b is a left_mul_err too!!
+            b b =?= b . b
+            bb=(bb)b=b(bb)=bb
+            -- 1
+            total: 1  * 3 *2 = 6 -- abc/bbb/ccc => 3 not (3!).
+            invalid: (3*2-1) *3! *2 = 60 -- (??-bb) *3! *dual
+            pass: 66
+    if {a=left_mul_id, mul_err=c}
+        a b c
+  (b=/=?) ? c
+        c c c
+            table[g] =?= table[table[g][0]]
+            ?? = ab|cc
+            b b =?= b . b
+            ??=ab
+                ba=(bb)a=b(ba)=ba
+                bb=(bb)b=b(bb)=bb
+                CORRECT
+                b is a left_mul_id too!
+            ??=cc
+                c=ca=(bb)a=b(ba)=bc=c
+                c=cb=(bb)b=b(bb)=bc=c
+                CORRECT
+            -- 2
+            total: (3 + 3!) *2 = 18
+            invalid: (2*3-2) *3! *2 = 48
+            pass: 66
+
+    if {a=left_mul_id, left_mul_err=c}
+        a b c
+  (b=/=?) ? (?=/=c)
+        c c c
+            table[table[g][-1]] =?= [sth]*n ==>> bbb ==>> error!
+            -- 0
+            total: 0
+            invalid: 2*3*2  *3! *2 = 144
+    ------------
+    if {a=mul_id}
+        a b c
+        b 1 2   12 =/= bb; 13 =/= bb
+        c 3 4   34 =/= cc; 24 =/= cc
+    if {mul_err=c}
+        1 2 c   12 =/= ab; 13 =/= ab
+        3 4 c   34 =/= ab; 24 =/= ab
+        c c c
+    if {a=left_mul_id}
+        a b c
+        1 2 3   123 =/= bbb; 14 =/= bc
+        4 5 6   456 =/= ccc; allow 14=aa, 25=bb, 36=cc
+    if {left_mul_err=c}
+        1 2 3   123 =/= abc; 35 =/= cc
+        4 5 6   456 =/= abc
+        c c c
+
+    if {no left/right id/err}
+        1 2 3   {123,456,789,147,258,369} =/= abc
+        4 5 6   {123,147}=/=aaa; {456,258}=/=bbb; {789,369}=/=ccc
+        7 8 9
+
+
+
+
+
+
+

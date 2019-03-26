@@ -1,0 +1,40 @@
+
+; IMainWanted <- MCFG_Start sym
+; IWantedSym2St sym <- MCFG_SymInitial sym inital_st
+; IWantedSt pos st <- MStInstance pos st pos'
+; IWantedSt2Next st <- MCFG_NFSM_Transition st next st'
+; IFinalSt st <- MCFG_NFSM_Final st
+; IWantedNextPos pos next <- MSymInstance pos next pos'
+
+; MTokenNFSM_Initial pos
+        -< IMainWanted <- MCFG_Start sym
+            --> MWantedSym_After pos sym
+; MWantedSym_After pos sym -- (pos, sym, ?) = (pos, st?, ?);
+        -< IWantedSym2St sym <- MCFG_SymInitial sym inital_st
+            --> MWantedSt_After pos st
+        -< IWantedSt pos st <- MStInstance pos st pos'
+            --> MSymInstance pos sym pos'
+            --> MOutputRule_Sym2St
+; MWantedSt_After pos st -- (pos, st, ?) = (pos, next, pos?) (...);
+        -< IWantedSt2Next st <- MCFG_NFSM_Transition st next st'
+            --> MWantedNextSt_After pos st next st'
+        -< IFinalSt st <- MCFG_NFSM_Final st
+            --> MStInstance pos st pos
+            --> MOutputRule_St2Null ...
+        -- -< IWantedSt2St st <- MCFG_NFSM_NullTransition st st'
+        -- no MOutputRule_St2St
+; MWantedNextSt_After pos st next st' -- (pos,next,pos'?)(pos'?,st',?)
+        -< IWantedNextPos pos next <- MSymInstance pos next pos'
+            --> MWantedNextPos_After pos st pos' st'
+; MWantedNextPos_After pos st next pos' st' -- (...)(pos',st',?)
+        -< IWantedSt pos' st' <- MStInstance pos' st' pos''
+            --> MStInstance pos st pos''
+            --> MOutputRule_St2NextSt ...
+
+; MTokenNFSM_Transition pos token endpos --> MSymInstance ...
+
+; -->
+    --> MTokenNFSM_Initial --> MTokenNFSM_Transition
+    --> MCFG_Start --> MCFG_SymInitial
+    --> MCFG_NFSM_Transition --> MCFG_NFSM_Final --> MCFG_NFSM_NullTransition
+

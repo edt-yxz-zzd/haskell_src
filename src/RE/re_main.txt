@@ -1,0 +1,89 @@
+
+-- st : state
+-- sym : symbol, terminal
+DFA
+    -- total state
+    transition :: st -> sym -> st
+        -- Map st (AutoMergeRangeMap sym_rng st)
+    is_final :: st -> Bool
+    is_error :: st -> Bool
+
+data LeftBound p = LeftIncluded p | LeftExcluded p -- I < E
+    deriving (Eq, Ord, Show, Read)
+data RightBound p = RightExcluded p | RightIncluded p -- E < I
+    deriving (Eq, Ord, Show, Read)
+unLeftBound :: LeftBound p -> p
+unRightBound :: RightBound p -> p
+left_bound_included :: LeftBound p -> Bool
+right_bound_included :: RightBound p -> Bool
+
+
+type Range p = (LeftBound p, RightBound p)
+is_in_range :: Ord p => p -> Range p -> Bool
+is_empty_range :: Ord p => p -> Range p -> Bool
+
+class Bounded p => RangePoint p where
+    type RawValue p :: *
+    -- included_min, included_max :: proxy p -> Bool
+    raw_value2point :: RawValue p -> p
+    raw_value2range :: RawValue p -> Range p
+    -- raw_value2point v `is_in_range` raw_value2range v
+    point2may_raw_value :: p -> Maybe (RawValue p)
+    -- q `is_in_range` raw_value2range v ==>> point2may_raw_value q == Just v
+    -- not (q `is_in_range` raw_value2range v) ==>> point2may_raw_value q == Nothing
+
+newtype RangeMap p v = RangeMap (Map (RightBound p) (LeftBound p, v))
+    -- rb `member` d ==>> not $ is_empty_range (fst $ get rb d, rb)
+    -- rb1, rb2 `member` d && rb1 < rb2 ==>> is_empty_range (fst $ get rb2 d, rb1)
+newtype AutoMergeRangeMap p v = AutoMergeRangeMap (RangeMap p v)
+    -- rb1, rb2 `member` d && rb1 < rb2 ==>>
+    --      let lb2 = fst $ get rb2 d
+    --          p2 = unLeftBound lb2
+    --          p1 = unRightBound rb1
+    --      p1 < p2 || (p1 < p2 && (not $ right_bound_included rb1) && (not $ left_bound_included lb2))
+
+
+class Mapping a where
+    type Key a :: *
+    type Value a :: *
+    getM :: Monad m => Key a -> a -> m (Value a)
+    may_get :: Key a -> a -> Maybe (Value a)
+    default_get :: Value a -> Key a -> a -> Value a
+    result_get :: r -> (Value a -> r) -> Key a -> a -> r
+class Mapping a => OpInsert a where
+    type UpdateKey a :: *
+    insert :: (UpdateKey a, Value a) -> a -> a
+    inserts :: [(UpdateKey a, Value a)] -> a -> a
+instance OpIsEmpty
+instance OpEmpty
+
+instance RangePoint p => Mapping (RangeMap p v) where
+    type Key (RangeMap p v) = RawValue p
+    type Value (RangeMap p v) = v
+    may_get k (RangeMap d) =
+        p = raw_value2point k
+        -- search ["p]", "p]"]
+        -- search "p)"
+        __smalls, __may_midV, larges = split (RightExcluded p) d
+        do
+            (right_bound, (left_bound, v)) <- min larges
+            let rng = (left_bound, right_bound)
+            if p `is_in_range` rng then Just v
+            else Nothing
+instance RangePoint p => OpInsert (RangeMap p v) where
+    type UpdateKey (RangeMap p v) = Range p
+    insert (k, v) (RangeMap d) =
+        (left, right) = raw_value2range k
+        -- ([\[(] left, right [)\]])
+        -- search ["left)", "right]"]
+        smalls, may_leftV, _larges = split (RightExcluded $ unLeftBound left) d
+        _middles, may_rightV, larges = split (RightIncluded $ unRightBound right) _larges
+        middles = if isJust may_leftV then insert ... _middles else _middles
+        -- snd_half of head middles; fst_half of head larges
+        -- or:  middle of head larges
+        d' = for k <- middles except fst: delete k d
+        ...
+
+
+
+

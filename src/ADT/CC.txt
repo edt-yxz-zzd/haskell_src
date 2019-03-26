@@ -1,0 +1,33 @@
+
+CC e arr i o = forall env r.
+    arr (env, o) (Either e r) -> arr (env, i) (Either e r)
+
+id = id
+i2x >>> x2o = box $ unbox x2o >>> unbox i2x
+first CC vo2eEr__to__vi2eEr = CC v_ox2eEr__to__v_ix2eEr
+    vx_o2eEr__to__vx_i2eEr = vo2eEr__to__vi2eEr
+    v_ox2eEr__to__v_ix2eEr = f vx_o2eEr__to__vx_i2eEr
+left CC vo2eEr__to__vi2eEr = CC v_oEx2eEr__to__v_iEx2eEr
+    vo2eEr = fmap Left ^>> v_oEx2eEr
+    vx2eEr = fmap Right ^>> v_oEx2eEr
+    vi2eEr = vo2eEr__to__vi2eEr vo2eEr
+    v_iEx2eEr = f viEvx2eEr
+    viEvx2eEr = vi2eEr ||| vx2eEr
+
+
+------------ fail!!!!!!!!!!!
+CC arr i o = Either (arr i r) (arr i o)
+
+id = Right id
+Left i2r >>> _ = Left i2r
+Right i2x >>> Left x2r = Left $ i2x >>> x2r
+Right i2x >>> Right x2o = Right $ i2x >>> x2o
+
+
+first (Left i2r) = Left $ fst ^>> i2r
+first (Right i2o) = Right $ first i2o
+
+left (Left i2r) = Right $ left i2r
+left (Right i2o) = Right $ left i2o
+
+

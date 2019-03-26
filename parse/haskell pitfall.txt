@@ -1,0 +1,16 @@
+
+class Boxed old new
+class forall old. Boxed old (box old) => New box ??? -- auto??
+    we cannot "instance New box => Boxed old (box old)"
+    can we "instance forall old. Boxed old (box old) => New box"
+
+class Monad m => MStateR m s | m -> s
+    vgetb
+class MStateR (n v) v => MStatePR n v | n -> v ??
+    vget -- fail ; ambiguous too
+
+ToAttrV
+as_vself
+
+
+

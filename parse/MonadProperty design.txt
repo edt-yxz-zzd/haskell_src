@@ -1,0 +1,172 @@
+
+MPropertyR
+1) mget :: p (m a) -- (New1 p) => p - attr name; m - monad
+but should unwrap "p (m a)" to use monad
+
+
+2) mget :: p m a -- (New2 p, Monad (p m), Boxed (m a) (p m a))
+2') mget :: b m name a -- Monad (b m name), Boxed (m a) (b m name a)
+    mget :: bm name a -- Monad (bm name), Boxed (m a) (bm name a)
+        mget :: bm SelfF a -- self
+        mget :: bm (Child attr SelfF) a -- self.attr
+        mget :: bm (Child attr2 (Child attr SelfF)) a -- self.attr.attr2
+
+MPropertyR bm name a, PropertyR v name2 a
+=> MPropertyR bm (Child name2 name) v -- self.name.name2
+
+PropertyR
+pget :: p m -> v
+pget :: m -> p v
+pget :: p m -> p v -- liftN m2v ?? but if p m <==> m.p, then p v ==> v.p !
+pget :: p m -> SelfP v
+
+why no pget<p>???
+
+
+
+
+
+
+-- B - Basic; R - Read;
+-- M - Monad
+Monad (m v) => MStateB m v | m -> v
+MStateB m v => MStateR m v
+mget :: m v v
+MCaseB bm
+mcaseb :: bm p v a -> bm q u a
+MStateB (bm name) v => MPropertyB bm name v | bm name -> v -- auto
+mcase :: (MPropertyB bm name' u) => bm name v a -> bm name' u a
+(MStateR (bm name) v, MPropertyB bm name v) => MPropertyR bm name v -- auto
+
+newtype MStateBox m attrs v a = MStateBox (m a) deriving (Monad)
+
+instance MStateB m s => MStateB (MStateBox (m s) SelfF) s
+instance MStateR m s => MStateR (MStateBox (m s) SelfF) s
+
+
+instance (MStateB (MStateBox s attr1) v, 
+          VStateB (VPropertyBox v attr2) u)
+    => MStateB (MStateBox s (Child attr1 attr2)) u
+
+instance (MStateR (MStateBox s attr1) v, 
+          VStateR (VPropertyBox v attr2) u)
+    => MStateR (MStateBox s (Child attr1 attr2)) u
+
+
+
+-- V - Value; P - property
+VStateB p v | p -> v
+VStateR p v => VStateR p v
+vget :: p v -> v
+
+
+VCaseB bs
+vcaseb :: bs q v -> bs p u
+VStateB (bs name) v, VCaseB bs => VPropertyB bs name v -- each bs : auto
+vcase :: (VPropertyB bs name' u) => bs name v -> bs name' u
+(VStateR (bs name) v, VPropertyB bs name v) => VPropertyR bs name v -- auto
+
+newtype VPropertyBox s attrs v = VPropertyBox s
+
+instance VStateB (VPropertyBox s SelfF) s
+instance VStateB p v => VStateB (VPropertyBox (p v) Wrapped) v
+instance VStateR (VPropertyBox s SelfF) s
+instance VStateR p v => VStateR (VPropertyBox (p v) Wrapped) v
+
+
+instance (VStateB (VPropertyBox s attr1) v, 
+          VStateB (VPropertyBox v attr2) u)
+    => VStateB (VPropertyBox s (Child attr1 attr2)) u
+
+instance (VStateR (VPropertyBox s attr1) v, 
+          VStateR (VPropertyBox v attr2) u)
+    => VStateR (VPropertyBox s (Child attr1 attr2)) u
+
+
+
+
+
+-- W - Write;  U - Update; RW - Read and Write
+let s = p v
+VStateB p v => VStateW p v
+vset :: v -> s -> s
+(VStateW (bs name) v, VPropertyB bs name v) => VPropertyW bs name v -- auto
+
+VStateW p v => VStateU p v
+vfupdate :: Functor f => (v->f v) -> s -> f s
+default vfupdate :: (Functor f, VStateR s v) => (v->f v) -> s -> f s
+-- vupdate :: (v->v) -> s -> s
+-- vmay_update :: (v->Maybe v) -> s -> Maybe s
+(VStateU (bs name) v, VPropertyW bs name v) => VPropertyU bs name v -- auto
+
+VStateR p v, VStateU p v => VStateRW p v -- auto
+(VStateRW (bs name) v, VPropertyR bs name v, VPropertyU bs name v)
+    => VPropertyRW bs name v -- auto
+
+
+
+
+
+instance VStateW (VPropertyBox s SelfF) s
+instance VStateW p v => VStateW (VPropertyBox s Wrapped) v
+
+instance VStateU (VPropertyBox s SelfF) s
+instance VStateU p v => VStateU (VPropertyBox s Wrapped) v
+
+
+
+
+
+instance (VStateU (VPropertyBox s attr1) v,  -- NOTE: VStateU
+          VStateW (VPropertyBox v attr2) u)
+    => VStateW (VPropertyBox s (Child attr1 attr2)) u
+
+
+instance (VStateU (VPropertyBox s attr1) v, 
+          VStateU (VPropertyBox v attr2) u)
+    => VStateU (VPropertyBox s (Child attr1 attr2)) u
+
+
+
+
+
+-- Monad
+MStateB m v => MStateW m v
+mset :: v -> m ()
+(MStateW (bm name) v, MPropertyB bm name v) => MPropertyW bm name v -- auto
+
+MStateW m v => MStateU m v
+mfupdate :: Functor f => (v->f v) -> f (m ())
+default mfupdate :: (MStateR m v, Functor f) => (v->f v) -> f (m ())
+(MStateU (bm name) v, MPropertyW bm name v) => MPropertyU bm name v -- auto
+
+MStateR m v, MStateU m v => MStateRW m v -- auto
+(MStateRW (bm name) v, MPropertyR bm name v, MPropertyU bm name v)
+    => MPropertyRW bm name v -- auto
+
+
+
+
+instance MStateW m s => MStateW (MStateBox m SelfF) s
+instance MStateU m s => MStateU (MStateBox m SelfF) s
+
+
+
+instance (MStateU (MStateBox s attr1) v,  -- MStateU
+          VStateW (VPropertyBox v attr2) u)
+    => MStateW (MStateBox s (Child attr1 attr2)) u
+
+instance (MStateU (MStateBox s attr1) v, 
+          VStateU (VPropertyBox v attr2) u)
+    => MStateU (MStateBox s (Child attr1 attr2)) u
+
+
+
+
+
+
+
+
+
+
+

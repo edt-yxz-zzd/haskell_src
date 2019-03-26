@@ -1,0 +1,124 @@
+
+-- independant
+<ca,cb> <-[ca <-> ca'??......, ...................]-> <ca',cb'>
+(va,vb) <-[(ca,va)<->(ca,va'), (cb,vb)<->(cb',vb')]-> (va',vb')
+
+
+-- only b, independant
+(va, vb) <-[(cb,vb)<->(cb',vb')]-> (va,vb')
+
+-- immutable a, a affects b
+(a, b) <-[a=>b<->b']-> (a,b')
+
+
+-- a affect...
+(a, (b,c)) <-[a=>b<->b', a=>c<->c']-> (a,(b',c'))
+
+<ca, cb> <-[....???....]-> <ca=="==va", cb'>
+runtime (<ca,cb>) <-[...]-> (<EQ va, cb'>)
+(va, vb) <-[(ca,va)=>(cb,vb)<->(cb',vb')]-> (va,         vb')
+
+
+class Subset c v where
+    verify :: c -> v -> Bool
+instance Subset (C '[]) v where
+    verify = const True
+instance Subset c1 v1, Subset c2 v2 => Subset (c1, c2) (v1, v2)
+instance Subset c1 v1 => Subset (C (c1 ': ls)) v1
+data C (ls :: [*]) where
+    C2 :: Subset c v => v -> C (c ': ls) -> C (v ': c ': ls)
+    C1 :: v -> C '[v]
+    C0 :: C '[]
+type family zip [] [] = []
+type family zip (a ': ls) '[] = (a, C '[]) ': zip ls []
+type family zip (a ': ls) (b ': bs) = (a, b) ': zip ls bs
+
+C0
+mkC1 :: c -> C '[c]
+mkC :: Monad m, Subset c v => v -> (c ': cs) -> m (C (v ': c ': cs))
+unsafe_mkC :: Subset c v => v -> cs -> C (v ': cs)
+
+class Bij arr a where
+    From a
+    To a
+    f :: a -> arr (From a) (To a)
+    f' :: a -> arr (To a) (From a)
+
+
+data SBijArr arr a b where
+    MK_bij :: Bij arr a => a -> SBijArr arr (C [From a]) (C [To a])
+    MK_sbij :: Bij arr c2c, Subset (From c2c) a, Subset (To c2c) b
+        i ~ C [a, From c2c], o ~ C [b, To c2c]
+        => c2c -> i `arr` b -> o `arr` a
+        -> SBijArr i o
+    MK_sbij__id_c :: Bij arr c2c, Subset (From c2c) a, Subset (To c2c) b
+        i ~ C [a, From c2c], o ~ C [b, To c2c]
+        => i `arr` b -> o `arr` a
+        -> SBijArr i o
+    MK_lift :: Subset ccb cb, Subset ca a, Subset cb b
+        o ~ C (b : cb : ccb), i ~ C [(cb, a), (C ccb, C [])]
+        => (C (cb ': ccb), C [a]) `arr` b -> o `arr` a -> SBijArr i o
+    MK_rlift :: Subset ccb cb, Subset ca a, Subset cb b
+        i ~ C (b : cb : ccb), o ~ C [(cb, a), (C ccb, C [])]
+        => i `arr` a -> (C (cb ': ccb), C [a]) `arr` b -> SBijArr i o
+    MK_compose :: SBijArr arr b c -> SBijArr arr a b -> SBijArr arr a c
+
+
+class SBij arr a where
+    CFrom a
+    CTo a
+    VFrom a
+    VTo a
+    sb :: a -> SBijArr arr (C (CFrom a) (VFrom a)) (C (CTo a) (VTo a))
+
+
+
+instance Category arr => Category (SBij arr) where
+    a . b = case (sb a, sb b) of
+        MK_bij h, MK_bij g -> MK_bij (chain_bij g h)
+        xxx not exist: MK_bij h, MK_sbij c2c ca_a2b cb_b2a ->
+        xxx not exist: MK_bij h, MK_lift g ->
+        MK_sbij cy2cz cy_y2z cz_z2y, MK_sbij cx2cy cx_x2y cy_y2x ->
+            cx2cz = chain_bij cx2cy cy2cz
+            1) cx_x2cy <~ cx2cy ?????????? arr is like (->) not Bij
+            2) cx_x2cy_y <~ cx_x2cy, cx_x2y
+            cx_x2z = cy_y2z . cx_x2cy_y
+            cz_z2x = ...
+            MK_sbij cx2cz cx_x2z cz_z2x
+        MK_lift (C (ccb, ca) (cb, a)) (C cb b) .
+        MK_lift (C ((cccb, cca), cz) ((ccb, ca), z)) (C (ccb, ca) (cb, a)) -> 
+            a <-> b+            z <-> a+
+        MK_lift cb+_a2b b+2a . MK_rlift .. cb+_a2
+
+
+
+
+
+
+Unicodes = [UInt] mod 0x11_0000
+
+Unicodes <-> UInt
+-- max: 1) as value 2) in constraint
+Unicodes <-> (max :: 0<= < 0x11_0000, [[UInt]] mod max) where max = max unicodes
+
+-- q in input/output
+-- max in value/constraint
+-- same value ?distrubute? in list
+(q :: >=2, UInt) <-> (q :: >=2, [UInt] mod q)
+    <-> (q, max :: UInt mod q, [[UInt]] mod max)
+    <-> (q, max, [([UInt] mod max)])
+    <-> (q, (max :: >= 2, [(max, UInt)] | max :: == 1, 1[[0..]] | max :: == 0, [0..]))
+    <-> (q, (max :: >= 2, [(max, UInt)] | max :: == 1, 1[UInt] | max::==0, UInt))
+    <-> (q, max, (max, [UInt]))
+    <-> (q :: UInt >= 2, max :: UInt mod q, [UInt])
+
+==>> (q :: UInt >= 2) => UInt <-> (UInt mod q, [UInt])
+
+
+
+
+
+
+
+
+

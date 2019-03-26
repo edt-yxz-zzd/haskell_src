@@ -1,0 +1,91 @@
+
+1) [Char] -> Bool
+2) [Token] -> Bool
+3) [Token] -> [Bool]
+4) [Token] -> [F4]
+    data F4 = Final | NonFinal | FinalALL | NonFinalALL
+    length result = length tokens + 1
+    result  = (Final | NonFinal)+
+            | (Final | NonFinal)* FinalALL+
+            | (Final | NonFinal)* NonFinalALL+
+    
+5) FSM -> [Token] -> [F4]
+5-1) FSM -> St -> Token -> St
+     FSM -> St -> F4
+
+    class FSM st tk a | a -> st tk where
+        transition :: a -> st -> tk -> st
+        initial :: a -> st
+        query :: a -> st -> F4
+    class FSM st tk a => NFSM ps st tk a | st -> ps where
+        nulltransition_partial :: a -> ps -> Set ps
+        transition_partial :: a -> ps -> tk -> Set ps
+        initial_partial :: a -> Set ps
+        complete :: a -> Set ps -> st
+        unpack_state :: a -> st -> Set ps
+
+    class NFSM ps st tk a => RE ps st tk a where
+        compile_regex :: a -> a
+        concat, or, and :: [a] -> a
+        not :: a -> a
+        repeat :: Integer -> Maybe Integer -> a -> a
+    class (RE ps st tk a, Partition tk tks ptt)
+        => RE_OBJ tks ps st tk a | a -> ptt where
+        token :: tk -> a
+        one_of :: tks -> a
+        token_partition :: a -> ptt
+        goto :: a -> ps -> Map tks (Set ps) -- union keys == universal ptt
+        is_final :: a -> ps -> Bool
+
+
+
+
+
+
+
+
+
+
+
+
+partition
+    -- univeral :: set
+    -- empty :: set
+    part :: a -> p -> set
+    
+finite_partition
+    parts :: p -> [set]
+    (&) :: p -> p -> p
+set
+    universal :: set
+    empty :: set
+    any_elem :: set -> Maybe a
+    (==)
+    (&)
+    sep :: set -> set -> (set, set, set)
+    -- sep a b = (a \\ b, a & b, b \\ a)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+target:
+    [:cls:] = [a-b] | ...
+    (?=...)
+    (?<...)
+    ! & |
+
+capture = (st0, st1)
+group = (st0, pos0, st1, pos1) -- last ones xxxxxxxx

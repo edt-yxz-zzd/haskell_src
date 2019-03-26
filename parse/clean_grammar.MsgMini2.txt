@@ -1,0 +1,83 @@
+
+{-
+    grammar ::= rule*, token*, start*
+    rule ::= left "::=" right*
+    token ::= terminal
+    start ::= nonterminal
+    left ::= nonterminal
+    right ::= symbol
+    symbol ::= nonterminal | terminal
+    
+    Symbol = Either
+    Grammar n t = Grammar { rules :: [(n, [Symbol n t])]
+                          , tokens :: [t]
+                          , starts :: [n]
+                          }
+    clean = productive rules, reachable symbols
+    1) buttom-up: productive symbols/rules
+    2) find out productive start symbols
+    3) top-down: reachable&productive symbols/rules
+-}
+
+-- n - nonterminal; t - terminal
+; >-
+    --> MStart n
+    --> MToken t
+    --> MRule n name [sym] -- name may be [sym]
+{-
+bug:
+    S = A D
+    A = a
+    terminals: {a}
+    starts: {S}
+    ==>> output should be nothing, since S is not productive
+    but using below algo:
+        A is productive and reachable !
+    redefine Reachable:
+        reachable (Left n), Rule n name syms, all productive syms
+            ==>> all reachable syms
+; IReachable_XSym <- MReachable sym
+; MStart n --> MReachable (Left n)
+; MReachable sym --> MReachableLeft n
+; MReachableLeft n -< ILeftXRights n <- MRule n [sym]
+    --> MReachable sym
+-}
+
+
+-- ; IProductive_XSym <- MProductive sym
+; MToken t --> MProductive (Right t)
+; IProductive_Sym sym <- MProductive sym
+; MRule n name syms --> MRuleTail n name syms syms
+; MRuleTail n name rights (sym:tail) -< IProductive_Sym sym <- MProductive sym
+    --> MRuleTail n name rights tail
+; MRuleTail n name syms []
+    --> MProductiveRule n name syms
+; MProductiveRule n name syms --> MProductive (Left n)
+
+
+
+; MStart n -< IProductive_Sym sym <- MProductive sym
+    --> MOutput_Start n
+    --> "Left n == sym" MReachable (Left n)
+; MReachable sym
+    --> MOutput_Sym sym
+    --> "if sym == Left n" ? MReachableLeft n
+; MReachableLeft n -< IProductiveLeftXNameRights n <- MProductiveRule n name syms
+    --> MOutput_Rule n name syms
+    --> "sym <- syms" * MReachable sym
+
+
+
+
+
+; IOutput_XRule <- MOutput_Rule n name syms
+; IOutput_XSym <- MOutput_Sym sym
+; IOutput_XStart <- MOutput_Start n
+; IXStart <- MStart n
+; IXToken <- MToken t
+; IXRule <- MRule n name syms
+
+
+; IProductiveLeftXNameRights n <- MProductiveRule n name syms
+
+

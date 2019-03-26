@@ -1,0 +1,10 @@
+10.31.14. OVERLAPPING, OVERLAPPABLE, OVERLAPS, and INCOHERENT pragmas
+
+OVERLAPPING = self override other
+OVERLAPPABLE = other override self
+OVERLAPS = OVERLAPPING + OVERLAPPABLE
+INCOHERENT = -OVERLAPS
+
+
+{-# MINIMAL (a, b) | c | ((d, e) | f), g) #-}
+{-# MINIMAL #-}

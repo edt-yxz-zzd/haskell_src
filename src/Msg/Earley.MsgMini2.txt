@@ -1,0 +1,235 @@
+
+{-
+
+input:
+    cfg:
+        start_sym
+        sym = initial_st
+        st = next_sym st'
+        st = st'
+        st = ; i.e. final_st
+    token_nfsm:
+        initial_pos
+        pos = next_token pos
+        pos = pos'
+        pos = ; i.e. final_pos
+    token2sym
+output:
+    cfg:
+        output_start_sym
+        output_sym = output_initial_st
+        output_st = next_output_sym output_st'
+        -- No: output_st = output_st'
+        output_st = ; i.e. output_final_st
+
+    output_sym -> pos_token_pos
+-}
+
+
+-- (pos, sym, ?pos) = (pos, st, ?pos) -- sym->{st}
+--    if T(pos, sym, pos') ==>> ?pos = pos'
+    ; MPosSymXPos pos sym
+        -< ITokenNFSM_Transition_PosSymXPos pos sym
+            <- MTokenNFSM_Transition pos token pos'
+            --> MPosSymPos pos sym pos'
+            --> MOutput_Sym2Token (pos, sym, pos') (pos, token, pos')
+        -< ISym2XSt sym <- MSym2StPrim sym initial_st
+            --> MPosSymStXPos pos sym initial_st
+    -- ; MPosSymStXPos pos sym initial_st --> MPosStXPos pos initial_st
+    ; -< IPosStXPos pos initial_st --> MPosStXPos pos initial_st -- fwd
+    ; MPosSymStXPos pos sym initial_st
+        -< IPosStXPos pos initial_st <- MPosStPos pos initial_st pos'
+            --> MPosSymPos pos sym pos'
+            --> MOutput_Sym2St (pos, sym, pos') (pos, initial_st, pos')
+-- (pos, st, ?pos) = (pos, next_sym, ?pos') (?pos', st', ?pos)
+--    if [final st] ==>> ?pos = pos
+    ; MPosStXPos pos st
+        -< IFinalSt st <- MCFG_NFSM_FinalSt st
+            --> MPosStPos pos st pos
+            --> MOutput_FinalSt (pos, st, pos) -- Rule_St2Null
+        -< IStXNext st <- MStNext st next
+            --> MPosStNextXPos pos st next
+    ; MPosStNextXPos pos st next
+        -< IPosSymXPos pos next <- MPosSymPos pos next pos_
+            --> MPosStNextPosXSt pos st next pos_
+    ; MPosStNextPosXSt pos st next pos_
+        -< IStNextXSt st next <- MCFG_NFSM_Transition st next st'
+            --> MPosStNextPosStXPos pos st next pos_ st'
+    ; MPosStNextPosStXPos pos st next pos_ st'
+        -< IPosStXPos pos_ st' <- MPosStPos pos_ st' pos'
+            --> MPosStPos pos st pos'
+            --> MOutput_St2NextSt (pos, st, pos') (pos, next, pos_) (pos_, st', pos')
+
+-- main wanted
+; IXStartSym <- MStartSymPrim sym
+; ITokenNFSM_XInitialPos <- MTokenNFSM_InitialPosPrim pos
+; >- -< IXStartSym -< ITokenNFSM_XInitialPos
+    <- MStartSymPrim sym <- MTokenNFSM_InitialPosPrim pos
+        --> MMainPosSymXPos pos sym
+-- ; MMainPosSymXPos pos sym --> MPosSymXPos pos sym
+; -< IPosSymXPos pos sym --> MPosSymXPos pos sym -- push_fwd
+; MMainPosSymXPos pos sym
+    -< IPosSymXPos pos sym <- MPosSymPos pos sym pos'
+        --> MMaybeOutput_StartSym (pos, sym, pos')
+; MMaybeOutput_StartSym (pos, sym, pos')
+    -< ITokenNFSM_FinalPos pos' <- MTokenNFSM_FinalPos pos'
+        --> MOutput_StartSym (pos, sym, pos')
+
+; IOutput_XStartSym <- MOutput_StartSym (pos, sym, pos')
+; IOutput_XSym2St <- MOutput_Sym2St (pos, sym, pos') (pos, st, pos')
+; IOutput_XSt2NextSt <- MOutput_St2NextSt (pos, st, pos') (pos, sym, pos_) (pos_, st', pos')
+; IOutput_XFinalSt <- MOutput_FinalSt (pos, st, pos) -- pos == pos
+; IOutput_XSym2Token <- MOutput_Sym2Token (pos, sym, pos') (pos, token, pos')
+
+
+; >-
+    {- temp
+    -- from nfsm
+    --> MCFG_NFSM_Transition
+    --> MCFG_NFSM_FinalSt -- not prim
+    --> MTokenNFSM_Transition
+    --> MTokenNFSM_FinalPos -- not prim
+    -}
+
+    -- srcs
+    --> MStartSymPrim
+    --> MSym2StPrim
+    --> MCFG_NFSM_TransitionPrim
+    --> MCFG_NFSM_NullTransitionPrim
+    --> MCFG_NFSM_FinalStPrim
+    -- > no MCFG_NFSM_InitialStPrim
+    --> MTokenNFSM_InitialPosPrim
+    --> MTokenNFSM_TransitionPrim
+    --> MTokenNFSM_NullTransitionPrim
+    --> MTokenNFSM_FinalPosPrim
+
+
+-- i decl
+; ITokenNFSM_Transition_PosSymXPos <- MTokenNFSM_Transition
+; ITokenNFSM_FinalPos pos <- MTokenNFSM_FinalPos pos
+; ISym2XSt <- MSym2StPrim
+; IPosStXPos <- MPosStPos
+; IFinalSt <- MCFG_NFSM_FinalSt
+; IStXNext <- MStNext
+; IPosSymXPos <- MPosSymPos
+; IStNextXSt <- MCFG_NFSM_Transition
+; MCFG_NFSM_Transition st sym st' --> MStNext st sym
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- ---------------------------------------
+
+-- new st
+-- ; MCFG_NFSM_InitialStPrim st --> MCFG_NFSM_NewSt st
+; MCFG_NFSM_FinalStPrim st
+    --> MCFG_NFSM_NewSt st
+; MCFG_NFSM_TransitionPrim st1 sym st2
+    --> MCFG_NFSM_NewSt st1
+    --> MCFG_NFSM_NewSt st2
+; MCFG_NFSM_NullTransitionPrim st1 st2
+    --> MCFG_NFSM_NewSt st1
+    --> MCFG_NFSM_NewSt st2
+; MCFG_NFSM_NewSt st --> MCFG_NFSM_NullTransition st st
+
+-- head extend; Prim -- from input directly
+-- O(n^2) !!
+; MCFG_NFSM_TransitionPrim st1 sym st2 -< ICFG_NFSM_NullTransitionEnd st1
+    <- MCFG_NFSM_NullTransition st0 st1
+        --> MCFG_NFSM_Transition st0 sym st2
+; MCFG_NFSM_NullTransitionPrim st1 st2 -< ICFG_NFSM_NullTransitionEnd st1
+    <- MCFG_NFSM_NullTransition st0 st1
+        --> MCFG_NFSM_NullTransition st0 st2
+
+-- final state head extend; St - state
+; MCFG_NFSM_FinalStPrim st1 -< ICFG_NFSM_NullTransitionEnd st1
+    <- MCFG_NFSM_NullTransition st0 st1
+        --> MCFG_NFSM_FinalSt st0
+
+-- initial/final states collection
+-- no ; ICFG_NFSM_InitialSt st <- MCFG_NFSM_InitialStPrim st
+-- IFinalSt ; ICFG_NFSM_FinalSt st <- MCFG_NFSM_FinalSt st
+-- IStNextXSt ; ICFG_NFSM_StNext st1 <- MCFG_NFSM_Transition st1 sym st2
+
+-- ------------------
+-- interface decl
+; ICFG_NFSM_NullTransitionEnd st1 <- MCFG_NFSM_NullTransition st0 st1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- ------------------------------------------
+
+-- new pos
+; MTokenNFSM_InitialPosPrim pos
+    --> MTokenNFSM_NewPos pos
+; MTokenNFSM_FinalPosPrim pos
+    --> MTokenNFSM_NewPos pos
+; MTokenNFSM_TransitionPrim pos1 token pos2
+    --> MTokenNFSM_NewPos pos1
+    --> MTokenNFSM_NewPos pos2
+; MTokenNFSM_NullTransitionPrim pos1 pos2
+    --> MTokenNFSM_NewPos pos1
+    --> MTokenNFSM_NewPos pos2
+; MTokenNFSM_NewPos pos --> MTokenNFSM_NullTransition pos pos
+
+-- head extend; Prim -- from input directly
+-- O(n^2) !!
+; MTokenNFSM_TransitionPrim pos1 token pos2 -< ITokenNFSM_NullTransitionEnd pos1
+    <- MTokenNFSM_NullTransition pos0 pos1
+        --> MTokenNFSM_Transition pos0 token pos2
+; MTokenNFSM_NullTransitionPrim pos1 pos2 -< ITokenNFSM_NullTransitionEnd pos1
+    <- MTokenNFSM_NullTransition pos0 pos1
+        --> MTokenNFSM_NullTransition pos0 pos2
+
+-- final state head extend; Pos - state
+; MTokenNFSM_FinalPosPrim pos1 -< ITokenNFSM_NullTransitionEnd pos1
+    <- MTokenNFSM_NullTransition pos0 pos1
+        --> MTokenNFSM_FinalPos pos0
+
+-- initial/final states collection
+-- ITokenNFSM_XInitialPos ; ITokenNFSM_InitialPos pos <- MTokenNFSM_InitialPosPrim pos
+; ITokenNFSM_FinalPos pos <- MTokenNFSM_FinalPos pos
+-- ITokenNFSM_Transition_PosSymXPos ; ITokenNFSM_PosNext pos1 <- MTokenNFSM_Transition pos1 token pos2
+
+-- ------------------
+-- interface decl
+; ITokenNFSM_NullTransitionEnd pos1 <- MTokenNFSM_NullTransition pos0 pos1
+
+
+
+
+
