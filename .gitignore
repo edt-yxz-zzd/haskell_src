@@ -15,3 +15,7 @@
 #mypy - static typing information
 /**/.mypy_cache
 
+/**/*.o
+/**/*.hi
+/**/*.exe
+

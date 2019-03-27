@@ -1,0 +1,17 @@
+> runghc StreamingAlgorithm.hs
+> ghci StreamingAlgorithm.hs
+> StreamingAlgorithm.hs
+:re
+main
+Ctrl+C
+:quit
+
+
+
+grep "^[a-z]\w* *\($\|=\|::\)" StreamingAlgorithm.hs
+grep "^class" StreamingAlgorithm.hs
+grep "^\(data\|newtype\)" StreamingAlgorithm.hs
+grep "^data" StreamingAlgorithm.hs
+grep "^newtype" StreamingAlgorithm.hs
+grep "^type" StreamingAlgorithm.hs
+
