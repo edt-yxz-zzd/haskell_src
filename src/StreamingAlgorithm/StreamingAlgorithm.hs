@@ -39,15 +39,15 @@ class Standardizable state => StreamingAlgorithm state where
         :: Standard state
         -> Either   (InputWaySelectorType4StreamingAlgorithm state)
                     (OutputType4StreamingAlgorithm state, Standard state)
-    get_inputs
+    maybe_get_input
         :: m state
         -> InputWaySelectorType4StreamingAlgorithm state
         -> MultiwayInputType4StreamingAlgorithm state
-        -> [InputType4StreamingAlgorithm state]
-    set_inputs
+        -> Maybe (InputType4StreamingAlgorithm state)
+    remove_one_input
         :: m state
         -> InputWaySelectorType4StreamingAlgorithm state
-        -> [InputType4StreamingAlgorithm state]
+        -> InputType4StreamingAlgorithm state
         -> MultiwayInputType4StreamingAlgorithm state
         -> MultiwayInputType4StreamingAlgorithm state
 
@@ -64,14 +64,14 @@ class Standardizable state => StreamingAlgorithm state where
         -> Maybe (InputType4StreamingAlgorithm state
                  ,MultiwayInputType4StreamingAlgorithm state)
     maybe_consume_input _ selector multiway_inputss
-        = f inputs
+        = f maybe_input
         where
             stateT = TheType :: forall. TheType state
-            inputs = get_inputs stateT selector multiway_inputss
-            f [] = Nothing
-            f (input:inputs') = Just (input, multiway_inputss')
+            maybe_input = maybe_get_input stateT selector multiway_inputss
+            f Nothing = Nothing
+            f (Just input) = Just (input, multiway_inputss')
                 where
-                    multiway_inputss' = set_inputs stateT selector inputs' multiway_inputss
+                    multiway_inputss' = remove_one_input stateT selector input multiway_inputss
 
 
 streaming

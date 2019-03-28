@@ -204,10 +204,17 @@ instance
                                     state_LFT'
                                     iconfigure
                                     interval_input
-    get_inputs _m_state _selector inputss = inputs
-        where inputs=inputss
-    set_inputs _m_state _selector inputs inputss = inputss'
-        where inputss'=inputs
+    maybe_get_input _m_state _selector inputss = case inputs of
+        (h:ts) -> Just h
+        [] -> Nothing
+        where
+            inputs = inputss
+    remove_one_input _m_state _selector input inputss = inputss'
+        where
+            -- input is head inputs
+            inputs = inputss
+            inputs' = tail inputs
+            inputss' = inputs'
     update_after_consume std_state _selector input = std_state'
         where
             (Private_State4LFT4StreamingAlgorithm_with

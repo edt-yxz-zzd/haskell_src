@@ -62,8 +62,6 @@ instance
     ,InputConfigure4LFT4StreamingAlgorithm iconfigure_rhs
     ,Eq (OutputType4OutputConfigure4LFT4StreamingAlgorithm oconfigure)
         -- FlexibleContexts
-    ,InputType4InputConfigure4LFT4StreamingAlgorithm iconfigure_lhs
-          ~ InputType4InputConfigure4LFT4StreamingAlgorithm iconfigure_rhs
     ) => StreamingAlgorithm (State4BiLFT4StreamingAlgorithm_with oconfigure iconfigure_lhs iconfigure_rhs) where
 
     type OutputType4StreamingAlgorithm
@@ -71,7 +69,9 @@ instance
         = OutputType4OutputConfigure4LFT4StreamingAlgorithm oconfigure
     type InputType4StreamingAlgorithm
         (State4BiLFT4StreamingAlgorithm_with oconfigure iconfigure_lhs iconfigure_rhs)
-        = (InputType4InputConfigure4LFT4StreamingAlgorithm iconfigure_lhs, Interval Rational)
+        = Either
+            (InputType4InputConfigure4LFT4StreamingAlgorithm iconfigure_lhs, Interval Rational)
+            (InputType4InputConfigure4LFT4StreamingAlgorithm iconfigure_rhs, Interval Rational)
     type MultiwayInputType4StreamingAlgorithm
         (State4BiLFT4StreamingAlgorithm_with oconfigure iconfigure_lhs iconfigure_rhs)
         = ([(InputType4InputConfigure4LFT4StreamingAlgorithm iconfigure_lhs, Interval Rational)]
@@ -122,13 +122,21 @@ instance
                                     state_BiLFT'
                                     iconfigure_lhs interval_lhs
                                     iconfigure_rhs interval_rhs
-    get_inputs _m_state selector inputss = inputs
-        where inputs = (if selector then snd else fst) inputss
-    set_inputs _m_state selector inputs inputss = inputss'
+    maybe_get_input _m_state selector inputss = may_input
         where
-            inputss' = if selector
-                        then (fst inputss, inputs)
-                        else (inputs, snd inputss)
+            may_input = if not selector then may_input_lhs else may_input_rhs
+            may_input_lhs = case fst inputss of
+                        (h:ts) -> Just $ Left h
+                        [] -> Nothing
+            may_input_rhs = case snd inputss of
+                        (h:ts) -> Just $ Right h
+                        [] -> Nothing
+    remove_one_input _m_state selector input inputss = inputss'
+        where
+            (inputs_lhs, inputs_rhs) = inputss
+            inputss' = if not selector
+                        then (tail inputs_lhs, inputs_rhs)
+                        else (inputs_lhs, tail inputs_rhs)
     update_after_consume std_state selector input = std_state'
         where
             (Private_State4BiLFT4StreamingAlgorithm_with
@@ -137,34 +145,31 @@ instance
                 iconfigure_rhs interval_rhs
                 ) = unStandard std_state
             std_state' = mkStandard nonstd_state'
-            nonstd_state' = if selector
-                then Private_State4BiLFT4StreamingAlgorithm_with
-                        oconfigure state_BiLFT_rhs'
-                        iconfigure_lhs interval_lhs
-                        iconfigure_rhs' interval_rhs'
-                else Private_State4BiLFT4StreamingAlgorithm_with
+            nonstd_state' = case input of
+                Left (input_digit, input_interval_LFT) ->
+                    let (mx_lhs, iconfigure_lhs') = input2LFT_ex iconfigure_lhs input_digit
+                        state_BiLFT_lhs' = mul_fst_input_matrix_BiLFT state_BiLFT mx_lhs ()
+                        interval_lhs' = input_interval_LFT
+                    in Private_State4BiLFT4StreamingAlgorithm_with
                         oconfigure state_BiLFT_lhs'
                         iconfigure_lhs' interval_lhs'
                         iconfigure_rhs interval_rhs
-            (input_digit, input_interval_LFT) = input
 
             ----------------
-            (mx_lhs, iconfigure_lhs') = input2LFT_ex iconfigure_lhs input_digit
-            state_BiLFT_lhs' = mul_fst_input_matrix_BiLFT state_BiLFT mx_lhs ()
-            interval_lhs' = input_interval_LFT
+                Right (input_digit, input_interval_LFT) ->
+                    let (mx_rhs, iconfigure_rhs') = input2LFT_ex iconfigure_rhs input_digit
+                        state_BiLFT_rhs' = mul_snd_input_matrix_BiLFT state_BiLFT () mx_rhs
+                        interval_rhs' = input_interval_LFT
+                    in Private_State4BiLFT4StreamingAlgorithm_with
+                        oconfigure state_BiLFT_rhs'
+                        iconfigure_lhs interval_lhs
+                        iconfigure_rhs' interval_rhs'
             ----------------
-            (mx_rhs, iconfigure_rhs') = input2LFT_ex iconfigure_rhs input_digit
-            state_BiLFT_rhs' = mul_snd_input_matrix_BiLFT state_BiLFT () mx_rhs
-            interval_rhs' = input_interval_LFT
 
 make_binary_operator_args_BiLFT
     :: (OutputConfigure4LFT4StreamingAlgorithm oconfigure
         ,WholeInputData4LFT4StreamingAlgorithm whole_input_lhs
         ,WholeInputData4LFT4StreamingAlgorithm whole_input_rhs
-        ,InputType4InputConfigure4LFT4StreamingAlgorithm
-            (InputConfigureType4WholeInputData4LFT4StreamingAlgorithm whole_input_lhs)
-        ~ InputType4InputConfigure4LFT4StreamingAlgorithm
-            (InputConfigureType4WholeInputData4LFT4StreamingAlgorithm whole_input_rhs)
         )
     => oconfigure
     -> BiLinearFractionalTransformation Integer
@@ -219,10 +224,6 @@ binary_operator_BiLFT
         ,Eq (OutputType4OutputConfigure4LFT4StreamingAlgorithm oconfigure)
         ,WholeInputData4LFT4StreamingAlgorithm whole_input_lhs
         ,WholeInputData4LFT4StreamingAlgorithm whole_input_rhs
-        ,InputType4InputConfigure4LFT4StreamingAlgorithm
-            (InputConfigureType4WholeInputData4LFT4StreamingAlgorithm whole_input_lhs)
-        ~ InputType4InputConfigure4LFT4StreamingAlgorithm
-            (InputConfigureType4WholeInputData4LFT4StreamingAlgorithm whole_input_rhs)
         )
     => oconfigure
     -> BiLinearFractionalTransformation Integer
@@ -240,10 +241,6 @@ mul_BiLFT, div_BiLFT, add_BiLFT, sub_BiLFT
         ,Eq (OutputType4OutputConfigure4LFT4StreamingAlgorithm oconfigure)
         ,WholeInputData4LFT4StreamingAlgorithm whole_input_lhs
         ,WholeInputData4LFT4StreamingAlgorithm whole_input_rhs
-        ,InputType4InputConfigure4LFT4StreamingAlgorithm
-            (InputConfigureType4WholeInputData4LFT4StreamingAlgorithm whole_input_lhs)
-        ~ InputType4InputConfigure4LFT4StreamingAlgorithm
-            (InputConfigureType4WholeInputData4LFT4StreamingAlgorithm whole_input_rhs)
         )
     => oconfigure
     -> whole_input_lhs
@@ -263,10 +260,6 @@ sub_BiLFT = flip binary_operator_BiLFT the_sub_matrix_BiLFT
 make_streaming_args_BiLFT
     :: (OutputConfigure4LFT4StreamingAlgorithm oconfigure
         ,WholeInputData4BiLFT4StreamingAlgorithm whole_input
-        ,InputType4InputConfigure4LFT4StreamingAlgorithm
-            (FstInputConfigureType4WholeInputData4BiLFT4StreamingAlgorithm whole_input)
-        ~ InputType4InputConfigure4LFT4StreamingAlgorithm
-            (SndInputConfigureType4WholeInputData4BiLFT4StreamingAlgorithm whole_input)
         )
     => oconfigure -> whole_input
     -> ((Standard (State4BiLFT4StreamingAlgorithm_with
@@ -290,10 +283,6 @@ streaming_BiLFT
     :: (OutputConfigure4LFT4StreamingAlgorithm oconfigure
         ,WholeInputData4BiLFT4StreamingAlgorithm whole_input
         ,Eq (OutputType4OutputConfigure4LFT4StreamingAlgorithm oconfigure)
-        ,InputType4InputConfigure4LFT4StreamingAlgorithm
-            (FstInputConfigureType4WholeInputData4BiLFT4StreamingAlgorithm whole_input)
-        ~ InputType4InputConfigure4LFT4StreamingAlgorithm
-            (SndInputConfigureType4WholeInputData4BiLFT4StreamingAlgorithm whole_input)
         )
     => oconfigure -> whole_input
     -> [OutputType4OutputConfigure4LFT4StreamingAlgorithm oconfigure]
