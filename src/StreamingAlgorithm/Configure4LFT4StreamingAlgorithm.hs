@@ -8,6 +8,7 @@ module Configure4LFT4StreamingAlgorithm
     (OutputConfigure4LFT4StreamingAlgorithm(..)
     ,InputConfigure4LFT4StreamingAlgorithm(..)
     ,WholeInputData4LFT4StreamingAlgorithm(..)
+    ,WholeInputData4BiLFT4StreamingAlgorithm(..)
     )
 where
 
@@ -50,4 +51,33 @@ class (InputConfigure4LFT4StreamingAlgorithm
         -- => oconfigure
         :: whole_input
         -> (LinearFractionalTransformation Integer, Interval Rational)
+
+class
+    (InputConfigure4LFT4StreamingAlgorithm
+        (FstInputConfigureType4WholeInputData4BiLFT4StreamingAlgorithm whole_input)
+    ,InputConfigure4LFT4StreamingAlgorithm
+        (SndInputConfigureType4WholeInputData4BiLFT4StreamingAlgorithm whole_input)
+    ) => WholeInputData4BiLFT4StreamingAlgorithm whole_input where
+    type FstInputConfigureType4WholeInputData4BiLFT4StreamingAlgorithm whole_input :: *
+    type SndInputConfigureType4WholeInputData4BiLFT4StreamingAlgorithm whole_input :: *
+    initial_input_configures_BiLFT
+        :: whole_input
+        -> (FstInputConfigureType4WholeInputData4BiLFT4StreamingAlgorithm whole_input
+            ,SndInputConfigureType4WholeInputData4BiLFT4StreamingAlgorithm whole_input
+            )
+    inputss_BiLFT
+        :: whole_input
+        -> ([(InputType4InputConfigure4LFT4StreamingAlgorithm
+                (FstInputConfigureType4WholeInputData4BiLFT4StreamingAlgorithm whole_input)
+            , Interval Rational
+            )]
+            ,[(InputType4InputConfigure4LFT4StreamingAlgorithm
+                (SndInputConfigureType4WholeInputData4BiLFT4StreamingAlgorithm whole_input)
+            , Interval Rational
+            )]
+            )
+    initial_state_ex_BiLFT
+        :: whole_input
+        -> (BiLinearFractionalTransformation Integer
+            , (Interval Rational, Interval Rational))
 

@@ -2,7 +2,28 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
+{-
+
+BiLinearFractionalTransformation:
+let z x y = (A*z'' x y + B)/(C*z'' x y + D) = F<a,b,c,d; e,f,g,h> x y
+    x = (A*x''+B)/(C*x''+D)
+    y = (A*y''+B)/(C*y''+D)
+z'' x y = F<-D*a+B*e, -D*b+B*f, -D*c+B*g, -D*d+B*h
+            ; C*a-A*e, C*b-A*f, C*c-A*g, C*d-A*h> x y
+    (*F4*) # arbitray transform on output-side
+z x y = z''' x'' y = ???
+        = F<a*A+c*C, b*A+d*C, c*D+a*B, d*D+b*B
+           ;e*A+g*C, f*A+h*C, g*D+e*B, h*D+f*B> x'' y
+    (*F5*) # arbitray transform on input-x
+z x y = z'''' x y'' = ???
+        = F<a*A+b*C, a*B+b*D, c*A+d*C, c*B+d*D
+            ;e*A+f*C, e*B+f*D, g*A+h*C, g*B+h*D> x y''
+    (*F6*) # arbitray transform on input-y
+
+-}
 
 module LinearFractionalTransformation
     (LinearFractionalTransformation(..)
@@ -12,16 +33,40 @@ module LinearFractionalTransformation
     ,are_all_zeros
     ,zero_LinearFractionalTransformation
     ,zero_BiLinearFractionalTransformation
+    --------------
+    ,interval_transformation_LFT
+    ,interval_transformation_ex_BiLFT
+    ,output_matrix_mul_BiLFT
+    ,inv_output_matrix_mul_BiLFT
+        -- (inv_output_matrix)_mul_(BiLFT)
+    ,mul_fst_input_matrix_BiLFT
+    ,mul_snd_input_matrix_BiLFT
+    --------------
+    ,the_mul_matrix_BiLFT
+    ,the_div_matrix_BiLFT
+    ,the_add_matrix_BiLFT
+    ,the_sub_matrix_BiLFT
     )
 where
 
-import Data.Semigroup
+
+import Interval
+import IntervalEx
+import Interval4
+    (cycle_preserved_transform2interval_transfrom
+    ,cycle_preserved_bitransform2interval_bitransfrom_ex
+    ,CyclePreservedTransform(..)
+    ,CyclePreservedBiTransform(..)
+    )
+
+
 import Callable
 import PartialCallable
 import Standardizable
 import EqStandardizable
 import ToList
 import UnsafeFromList
+import Data.Semigroup
 
 -- not output
 pattern LinearFractionalTransformation_
@@ -248,4 +293,169 @@ instance Num a => Monoid (LinearFractionalTransformation a) where
             }
 
 
+
+
+
+-----------------------------------
+is_constant_LFT :: Real a => LinearFractionalTransformation a -> Bool
+-- matrix[0,_;0,_]
+is_constant_LFT mx = a==0 && c==0
+    where
+        [a,b,c,d] = toList mx
+
+interval_transformation_LFT
+    :: (Real a)
+    => LinearFractionalTransformation a
+    -> IntervalEx Rational -> IntervalEx Rational
+interval_transformation_LFT mx
+    = if is_constant
+        then const $ case may_div b d of
+            Just r -> IntervalEx (Inside r r)
+            Nothing -> Inside_oo_oo
+        else cycle_preserved_transform2interval_transfrom
+                $ CyclePreservedTransform f
+    where
+        [a,b,c,d] = toList mx
+        is_constant = a==0 && c==0
+
+        f (Just r) = call mx r
+        f Nothing = may_div a c
+
+        may_div n d = if d == 0
+                        then Nothing
+                        else (Just $ toRational n / toRational d)
+
+
+
+interval_transformation_ex_BiLFT
+    :: forall a. (Real a)
+    => BiLinearFractionalTransformation a
+    -> IntervalEx Rational -> IntervalEx Rational
+    -> (IntervalEx Rational, Bool)
+interval_transformation_ex_BiLFT mx
+    = if is_constant
+        then \_ _ -> (result_when_const, False)
+        else cycle_preserved_bitransform2interval_bitransfrom_ex
+                $ CyclePreservedBiTransform ff
+    where
+        [a,b,c,d  ,e,f,g,h] = toList mx
+        is_constant = all (0==) [a,b,c  ,e,f,g]
+
+        mx__x_oo, mx__y_oo :: forall. LinearFractionalTransformation a
+            -- ScopedTypeVariables
+        mx__x_oo = unsafe_fromList [a,b, e,f]
+        mx__y_oo = unsafe_fromList [a,c, e,g]
+
+        ff (Just x) (Just y) = call mx (x,y)
+        ff Nothing (Just y) = call mx__x_oo y
+        ff (Just x) Nothing = call mx__y_oo x
+        ff Nothing Nothing = may_div a e
+
+        may_div n d = if d == 0
+                        then Nothing
+                        else (Just $ toRational n / toRational d)
+
+        result_when_const = case may_div d h of
+            Just r -> IntervalEx (Inside r r)
+            Nothing -> Inside_oo_oo
+
+
+
+
+
+-------------------------------------------
+
+
+{-
+inv matrix[A,B;C,D] ~~ matrix[-D,B;C,-A]
+matrix[A,B;C,D] * matrix[-D,B;C,-A] = matrix[-AD+BC,0; 0, CB-AD]
+    = I*(-AD+BC) ~~ I
+ -}
+output_matrix_mul_BiLFT, inv_output_matrix_mul_BiLFT
+    :: Num a
+    => LinearFractionalTransformation a
+    -> BiLinearFractionalTransformation a
+    -> BiLinearFractionalTransformation a
+    -- (*F4*)
+{-
+z'' x y = F<-D*a+B*e, -D*b+B*f, -D*c+B*g, -D*d+B*h
+            ; C*a-A*e, C*b-A*f, C*c-A*g, C*d-A*h> x y
+-}
+output_matrix_mul_BiLFT mx bimx = bimx' where
+    [a,b,c,d ,e,f,g,h] = toList bimx
+    [_A,_B,_C,_D] = toList mx
+    bimx' = unsafe_fromList
+                [-_D*a+_B*e, -_D*b+_B*f, -_D*c+_B*g, -_D*d+_B*h
+                ,_C*a-_A*e, _C*b-_A*f, _C*c-_A*g, _C*d-_A*h]
+inv_output_matrix_mul_BiLFT inv_mx bimx = bimx' where
+    [a,b,c,d ,e,f,g,h] = toList bimx
+    [_A,_B,_C,_D] = toList inv_mx
+    bimx' = unsafe_fromList
+                [_A*a+_B*e, _A*b+_B*f, _A*c+_B*g, _A*d+_B*h
+                ,_C*a+_D*e, _C*b+_D*f, _C*c+_D*g, _C*d+_D*h]
+
+
+mul_fst_input_matrix_BiLFT
+    :: Num a
+    => BiLinearFractionalTransformation a
+    -> LinearFractionalTransformation a
+    -> ()
+    -> BiLinearFractionalTransformation a
+    -- (*F5*)
+{-
+z x y = z''' x'' y = ???
+        = F<a*A+c*C, b*A+d*C, c*D+a*B, d*D+b*B
+           ;e*A+g*C, f*A+h*C, g*D+e*B, h*D+f*B> x'' y
+-}
+mul_fst_input_matrix_BiLFT bimx mx () = bimx' where
+    [a,b,c,d ,e,f,g,h] = toList bimx
+    [_A,_B,_C,_D] = toList mx
+    bimx' = unsafe_fromList
+                [a*_A+c*_C, b*_A+d*_C, c*_D+a*_B, d*_D+b*_B
+                ,e*_A+g*_C, f*_A+h*_C, g*_D+e*_B, h*_D+f*_B]
+
+
+mul_snd_input_matrix_BiLFT
+    :: Num a
+    => BiLinearFractionalTransformation a
+    -> ()
+    -> LinearFractionalTransformation a
+    -> BiLinearFractionalTransformation a
+    -- (*F6*)
+{-
+z x y = z'''' x y'' = ???
+        = F<a*A+b*C, a*B+b*D, c*A+d*C, c*B+d*D
+            ;e*A+f*C, e*B+f*D, g*A+h*C, g*B+h*D> x y''
+-}
+mul_snd_input_matrix_BiLFT bimx () mx = bimx' where
+    [a,b,c,d ,e,f,g,h] = toList bimx
+    [_A,_B,_C,_D] = toList mx
+    bimx' = unsafe_fromList
+                [a*_A+b*_C, a*_B+b*_D, c*_A+d*_C, c*_B+d*_D
+                ,e*_A+f*_C, e*_B+f*_D, g*_A+h*_C, g*_B+h*_D]
+
+
+
+-------------------------
+the_mul_matrix_BiLFT :: Num a => BiLinearFractionalTransformation a
+the_div_matrix_BiLFT :: Num a => BiLinearFractionalTransformation a
+the_add_matrix_BiLFT :: Num a => BiLinearFractionalTransformation a
+the_sub_matrix_BiLFT :: Num a => BiLinearFractionalTransformation a
+
+the_mul_matrix_BiLFT = unsafe_fromList
+    [1,0,0,0
+    ,0,0,0,1
+    ]
+the_div_matrix_BiLFT = unsafe_fromList
+    [0,1,0,0
+    ,0,0,1,0
+    ]
+the_add_matrix_BiLFT = unsafe_fromList
+    [0,1,1,0
+    ,0,0,0,1
+    ]
+the_sub_matrix_BiLFT = unsafe_fromList
+    [0,1,-1,0
+    ,0,0,0,1
+    ]
 

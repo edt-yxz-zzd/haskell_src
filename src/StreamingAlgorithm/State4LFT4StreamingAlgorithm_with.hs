@@ -93,7 +93,7 @@ LinearFractionalTransformation as core state:
 -}
 
 module State4LFT4StreamingAlgorithm_with
-    (State4LFT4StreamingAlgorithm_with(..)
+    (State4LFT4StreamingAlgorithm_with() -- ()
     ,make_streaming_args_LFT
     ,streaming_LFT
     )
@@ -105,37 +105,36 @@ import Configure4LFT4StreamingAlgorithm
     ,WholeInputData4LFT4StreamingAlgorithm(..)
     )
 import LinearFractionalTransformation
+    (LinearFractionalTransformation(..)
+    ,are_all_zeros
+    ,interval_transformation_LFT
+    )
 import Interval
+import IntervalEx
 import StreamingAlgorithm
 import Standardizable
 import PartialCallable (partial_transform)
 import Data.Semigroup ((<>))
 
 
---data State_fromLinearFractionalTransformation static_configure
---class Configure4StreamingAlgorithm state where
 
 data State4LFT4StreamingAlgorithm_with oconfigure iconfigure
-    = State4LFT4StreamingAlgorithm_with
-        (LinearFractionalTransformation Integer)
-        (Interval Rational)
+    = Private_State4LFT4StreamingAlgorithm_with
         oconfigure
+        (LinearFractionalTransformation Integer)
         iconfigure
+        (Interval Rational)
+    -- oconfigure state_LFT iconfigure interval_input
     deriving (Show, Read)
 
 instance Standardizable (State4LFT4StreamingAlgorithm_with oconfigure iconfigure) where
-    standardize (State4LFT4StreamingAlgorithm_with
-        state_LFT interval_LFT oconfigure iconfigure
-        ) = State4LFT4StreamingAlgorithm_with
-                (standardize state_LFT)
-                interval_LFT
+    standardize (Private_State4LFT4StreamingAlgorithm_with
+        oconfigure state_LFT iconfigure interval_input
+        ) = Private_State4LFT4StreamingAlgorithm_with
                 oconfigure
+                (standardize state_LFT)
                 iconfigure
-{-
-class State4LFT4StreamingAlgorithm state where
-    get_state_LFT :: state -> LinearFractionalTransformation Integer
-    get_interval_LFT :: state -> Interval Rational
--}
+                interval_input
 
 instance
     (OutputConfigure4LFT4StreamingAlgorithm oconfigure
@@ -164,16 +163,30 @@ instance
     maybe_poll_output std_state
         = maybe (Left ()) (Right . g) may_output
         where
-            (State4LFT4StreamingAlgorithm_with
-                state_LFT interval_LFT oconfigure iconfigure
+            (Private_State4LFT4StreamingAlgorithm_with
+                oconfigure state_LFT iconfigure interval_input
                 ) = unStandard std_state
 
-            f = partial_transform state_LFT
             may_output = if are_all_zeros state_LFT
                             then Nothing
-                            else may_output'
-            may_output' = case interval_LFT of
-                    Outside _ _ -> Nothing
+                            else may_output''
+            interval_output = interval_transformation_LFT state_LFT
+                                    $ IntervalEx interval_input
+            may_output'' = case interval_output of
+                    IntervalEx interval -> case interval of
+                        Inside c d -> do
+                            output <- maybe_make_output oconfigure c
+                            output' <- maybe_make_output oconfigure d
+                            -- bug: if c == d then return output else Nothing
+                            if output == output' then return output else Nothing
+                        Outside a b -> Nothing
+                        LessEq a -> Nothing
+                        GreaterEq a -> Nothing
+                    Inside_oo_oo ->  Nothing
+                    Outside_oo_oo ->  Nothing
+
+            f = partial_transform state_LFT
+            may_output' = case interval_input of
                     Inside a b -> do
                         c <- f a
                         d <- f b
@@ -181,33 +194,35 @@ instance
                         output' <- maybe_make_output oconfigure d
                         -- bug: if c == d then return output else Nothing
                         if output == output' then return output else Nothing
+                    _ -> Nothing
+
             g output = (output, mkStandard nonstd_state') where
                 (inv_LFT, oconfigure') = output2inv_LFT_ex oconfigure output
                 state_LFT' = inv_LFT <> state_LFT
-                nonstd_state' = State4LFT4StreamingAlgorithm_with
-                                    state_LFT'
-                                    interval_LFT
+                nonstd_state' = Private_State4LFT4StreamingAlgorithm_with
                                     oconfigure'
+                                    state_LFT'
                                     iconfigure
+                                    interval_input
     get_inputs _m_state _selector inputss = inputs
         where inputs=inputss
     set_inputs _m_state _selector inputs inputss = inputss'
         where inputss'=inputs
     update_after_consume std_state _selector input = std_state'
         where
-            (State4LFT4StreamingAlgorithm_with
-                state_LFT interval_LFT oconfigure iconfigure
+            (Private_State4LFT4StreamingAlgorithm_with
+                oconfigure state_LFT iconfigure interval_input
                 ) = unStandard std_state
             std_state' = mkStandard nonstd_state'
-            nonstd_state' = State4LFT4StreamingAlgorithm_with
-                                state_LFT'
-                                interval_LFT'
+            nonstd_state' = Private_State4LFT4StreamingAlgorithm_with
                                 oconfigure
+                                state_LFT'
                                 iconfigure'
+                                interval_input'
             (input_digit, input_interval_LFT) = input
             (mx, iconfigure') = input2LFT_ex iconfigure input_digit
             state_LFT' = state_LFT <> mx
-            interval_LFT' = input_interval_LFT
+            interval_input' = input_interval_LFT
 
 
 
@@ -238,11 +253,11 @@ streaming_LFT
 make_streaming_args_LFT oconfigure whole_input
     = (std_state0, inputs) where
     iconfigure = initial_input_configure_LFT whole_input
-    (nonstd_state0_LFT, interval_LFT) = initial_state_ex_LFT whole_input
+    (nonstd_state0_LFT, interval_input) = initial_state_ex_LFT whole_input
     inputs = inputs_LFT whole_input
     ------
-    nonstd_state0 = State4LFT4StreamingAlgorithm_with
-                    nonstd_state0_LFT interval_LFT oconfigure iconfigure
+    nonstd_state0 = Private_State4LFT4StreamingAlgorithm_with
+                    oconfigure nonstd_state0_LFT iconfigure interval_input
     std_state0 = mkStandard nonstd_state0
 
 streaming_LFT oconfigure whole_input
