@@ -87,6 +87,21 @@ min max?
         == k*(K/(1-K)*A) + K/(1-K)*B + K/(1-K)/(1-K)
         == 545140134 / 151931373055999 * k + 2064961583067035368591 / 23083142118681138916389888001
         ~~ 3.5880682378817955e-6 *k + 8.945756051971219e-8
+
+
+ver2:
+    f(k) = a(k)/b(k)*(d(k) + f(k+1))
+    y = 13591409 + f(1)
+        = d(0) + f(1)
+        = (d(0) + a(1)/b(1)*) (d(1) + a(2)/b(2)*) ...
+        = II (d(k-1)+a(k)/b(k)*) {k<-1..}
+        = LIMIT call II matrix[a(k), d(k-1)*b(k); 0, b(k)] {k<-1..N} (d(N) + f(N+1)) {N<-1..}
+    d(k) = (545140134*k+13591409)
+    abs f(N+1) = 3.5880682378817955e-6 *(N+1) + 8.945756051971219e-8
+        <= N+1
+    N >= 1
+    d(N)+f(N+1) <= (545140134+1)*N+(13591409+1)
+    d(N)+f(N+1) >= (545140134-1)*N+(13591409-1)
 -}
 module SimpleContinuedFraction_of_pi__by_Chudnovsky_algorithm
     (the_continued_fraction_of_426880_by_sqrt10005
@@ -123,7 +138,39 @@ the_continued_fraction_of_426880_by_sqrt10005 ()
                     }
 
 
+-- ver2
 the_pi_inputs () = LinearFractionalTransformationIntervalPairs
+    (head pairs)
+    (tail pairs)
+    where
+        pairs = zip mx_ls bounds
+        -- y = LIMIT call II matrix[a(k), d(k-1)*b(k); 0, b(k)] {k<-1..N} (d(N) + f(N+1)) {N<-1..}
+        mx_ls = [unsafe_fromList [a,d_1*b, 0,b] | (a,b,d_1) <- zip3 ak bk __dk_1]
+
+        --
+        -- a(k) = 8*prdouct[6*k-5,6*k-3,6*k-1] <= 8*6^3 *k^3
+        -- b(k) = k^3 * (-262537412640768000)
+        -- d(k) = (545140134*k+13591409)
+
+        ak = [8*(6*k-5)*(6*k-3)*(6*k-1) | k <- [1..]]
+        bk = [k^3 * (-262537412640768000) | k <- [1..]]
+        __dk_1 = [545140134*0+13591409, 545140134*1+13591409..]
+
+        -- N >= 1
+        -- d(N)+f(N+1) <= (545140134+1)*N+(13591409+1)
+        -- d(N)+f(N+1) >= (545140134-1)*N+(13591409-1)
+        lower_bounds, upper_bounds :: [Integer]
+        lower_bounds = [(545140134-1)*1+(13591409-1), (545140134-1)*2+(13591409-1)..]
+        upper_bounds = [(545140134+1)*1+(13591409+1), (545140134+1)*2+(13591409+1)..]
+        bounds = [Inside lower_bound upper_bound
+                | (lower_bound, upper_bound)
+                <- zip  (map toRational lower_bounds)
+                        (map toRational upper_bounds)
+                ]
+
+
+
+the_pi_inputs__ver1 () = LinearFractionalTransformationIntervalPairs
     (state0_mx, head bounds)
     (zip mx_ls $ tail bounds)
     where
