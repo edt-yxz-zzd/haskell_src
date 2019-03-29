@@ -1,3 +1,7 @@
+> runghc SimpleContinuedFraction_of_pi__by_Chudnovsky_algorithm.hs
+> runghc SimpleContinuedFraction_of_pi__by_Gosper_series.hs
+> runghc Test__???.hs
+
 > runghc StreamingAlgorithm.hs
 > ghci StreamingAlgorithm.hs
 > StreamingAlgorithm.hs
