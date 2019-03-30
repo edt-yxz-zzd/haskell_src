@@ -172,6 +172,14 @@ ver2_2: update interval
 module SimpleContinuedFraction_of_pi__by_Chudnovsky_algorithm
     (the_continued_fraction_of_426880_by_sqrt10005
     ,the_pi_inputs
+    ,the_continued_fraction_digits_of_pi__by_Chudnovsky_algorithm
+    -----------
+    ,the_pi_inputs__ver2_2__from_interval_refine_times
+    ,the_pi_inputs__ver2_1
+    ,the_pi_inputs__ver1
+    ,the_continued_fraction_digits_of_pi__by_Chudnovsky_algorithm__from_interval_refine_times
+    ,main
+    ,main_i
     )
 where
 
@@ -207,36 +215,146 @@ the_continued_fraction_of_426880_by_sqrt10005 ()
 the_pi_inputs = the_pi_inputs__ver2_2
 
 -- ver2_2: update interval
-the_pi_inputs__ver2_2 () = LinearFractionalTransformationIntervalPairs
-    (head pairs)
-    (tail pairs)
+the_pi_inputs__ver2_2 ()
+    = the_pi_inputs__ver2_2__from_interval_refine_times 2
+the_pi_inputs__ver2_2__from_interval_refine_times
+    :: Int -> LinearFractionalTransformationIntervalPairs
+the_pi_inputs__ver2_2__from_interval_refine_times interval_refine_times
+    = LinearFractionalTransformationIntervalPairs
+        (head output_pair_1_oo)
+        (tail output_pair_1_oo)
     where
-        pairs = mk_pairs err_pairs
-        err_pairs = map f [1..]
-        mk_pairs ((mx_k, interval_k):ts@((mx_k1, interval_k1):_))
-            = (mx_k, interval_k1):mk_pairs ts
-
-        -- y = LIMIT call II matrix[a(k), d(k-1)*b(k); 0, b(k)] {k<-1..N} (d(N) + f(N+1)) {N<-1..}
-        f k = (mx_k, Inside lower_bound_k upper_bound_k)
+        output_pair_1_oo = arg34s_k_oo_to_output_pair_k_oo arg34s_1_oo
+        -- arg34s_1_oo = f . f . f $ _arg34s_1_oo
+        arg34s_1_oo = f . f . f $ _arg34s_1_oo
           where
+            f = arg34s_k_oo_to_better_arg34s_k_oo
+            fs = replicate interval_refine_times f
+            arg34s_k_oo_to_best_arg34s_k_oo = foldr (.) id fs
+        _arg34s_1_oo = map arg123_to_arg34 arg123s_1_oo
+        arg123s_1_oo = arg1_k_sub_1_arg12s_k_oo_to_arg123s_k_oo
+                            arg1_0 arg12s_1_oo
+        arg1_0 = arg1 0
+        arg12s_1_oo = arg1s_k_sub_1_oo_to_arg12s_k_oo arg1s_0_oo
+        arg1s_0_oo = map arg1 [0..]
+
+        ---------------------------------------------
+
+        arg34s_k_oo_to_output_pair_k_oo arg34s_k_oo@
+            (arg34_k@
+                    (arg3_k@
+                        (mx_k, _lower_bound_k, _upper_bound_k)
+                    ,arg4_k
+                    )
+            :arg34_k_add_1@
+                    (arg3_k_add_1@
+                        (_mx_k_add_1, lower_bound_k_add_1, upper_bound_k_add_1)
+                    ,arg4_k_add_1
+                    )
+            :_
+            )
+            = output_pair_k
+            : arg34s_k_oo_to_output_pair_k_oo (tail arg34s_k_oo)
+          where
+            output_pair_k = (mx_k, interval_k_add_1)
+            interval_k_add_1 = Inside lower_bound_k_add_1 upper_bound_k_add_1
+
+
+        -- g(k) = A(k) + C(k)*g(k+2)
+        arg34s_k_oo_to_better_arg34s_k_oo
+            arg34s_k_oo@
+                (arg34_k@
+                    (arg3_k@
+                        (mx_k, lower_bound_k, upper_bound_k)
+                    ,arg4_k@
+                        (_Ak, _Ck)
+                    )
+                :arg34_k_add_1
+                :arg34_k_add_2@
+                    (arg3_k_add_2@
+                        (mx_k_add_2, lower_bound_k_add_2, upper_bound_k_add_2)
+                    ,arg4_k_add_2
+                    )
+                :arg34s_k_add_3_oo
+                )
+            = better_arg34_k
+            : arg34s_k_oo_to_better_arg34s_k_oo (tail arg34s_k_oo)
+          where
+            better_arg34_k = (better_arg3_k, arg4_k)
+            better_arg3_k = (mx_k
+                            ,g_k_add_2_to_better_gk lower_bound_k_add_2
+                            ,g_k_add_2_to_better_gk upper_bound_k_add_2
+                            )
+            -- g(k) = A(k) + C(k)*g(k+2)
+            g_k_add_2_to_better_gk g_k_add_2 = _Ak + _Ck*g_k_add_2
+
+        arg123_to_arg34 (arg1_k, arg2_k@(_Ak, _Bk, _Ck), arg3_k)
+            = arg34_k
+          where
+            arg34_k = (arg3_k, arg4_k)
+            arg4_k = (_Ak, _Ck)
+
+
+        arg1_k_sub_1_arg12s_k_oo_to_arg123s_k_oo
+            arg1_k_sub_1 arg12s_k_oo
+            = arg12s_k_sub_1_oo_to_arg123s_k_oo arg12s_k_sub_1_oo
+          where
+            arg12s_k_sub_1_oo = arg12_k_sub_1 : arg12s_k_oo
+            arg12_k_sub_1 = (arg1_k_sub_1, arg2_k_sub_1)
+            arg2_k_sub_1 = undefined
+        arg12s_k_sub_1_oo_to_arg123s_k_oo
+            arg12s_k_sub_1_oo@
+                (arg12_k_sub_1@
+                    (arg1_k_sub_1@
+                        (k_sub_1, a_k_sub_1, b_k_sub_1, d_k_sub_1)
+                    ,arg2_k_sub_1
+                    )
+                :arg12s_k_oo@
+                    (arg12_k@
+                        (arg1_k@(k, ak, bk, dk)
+                        ,arg2_k@(_Ak, _Bk, _Ck)
+                        )
+                    :arg12s_k_add_1_oo
+                    )
+                )
+            = arg123_k : arg12s_k_sub_1_oo_to_arg123s_k_oo arg12s_k_oo
+          where
+            arg123_k = (arg1_k, arg2_k, arg3_k)
+            arg3_k = (mx_k, lower_bound_k, upper_bound_k)
             mx_k = mx ak bk d_k_sub_1
             lower_bound_k = lower_bound _Ak _Ck
             upper_bound_k = upper_bound k
+
+        arg1s_k_sub_1_oo_to_arg12s_k_oo
+            arg1s_k_sub_1_oo@
+                (arg1_k_sub_1@
+                    (k_sub_1, a_k_sub_1, b_k_sub_1, d_k_sub_1)
+                :arg1s_k_oo@
+                    (arg1_k@(k, ak, bk, dk)
+                    :(k_add_1, a_k_add_1, b_k_add_1, d_k_add_1)
+                    :_
+                    )
+                )
+            = arg12_k : arg1s_k_sub_1_oo_to_arg12s_k_oo arg1s_k_oo
+          where
+            arg12_k = (arg1_k, arg2_k)
+            arg2_k = (_Ak, _Bk, _Ck)
             _Ak = _A ak _Bk d_k_sub_1 dk
             _Ck = _C ak a_k_add_1 _Bk _B_k_add_1
+            _Bk = -bk
+            _B_k_add_1 = -b_k_add_1
+            -- a_k_add_1 = a k_add_1
+            -- b_k_add_1 = b k_add_1
+            -- d_k_sub_1 = d k_sub_1
+            -- k_add_1 = k+1
+            -- k_sub_1 = k-1
+        arg1 k = (k, ak, bk, dk)
+          where
             ak = a k
             bk = b k
             dk = d k
-            a_k_add_1 = a k_add_1
-            b_k_add_1 = b k_add_1
-            d_k_sub_1 = d k_sub_1
 
-            _Bk = -bk
-            _B_k_add_1 = -b_k_add_1
-
-            k_add_1 = k+1
-            k_sub_1 = k-1
-
+        -- y = LIMIT call II matrix[a(k), d(k-1)*b(k); 0, b(k)] {k<-1..N} (d(N) + f(N+1)) {N<-1..}
         mx :: Integer -> Integer -> Integer -> LinearFractionalTransformation Integer
         mx ak bk d_k_sub_1 = unsafe_fromList [ak,d_k_sub_1*bk, 0,bk]
 
@@ -343,6 +461,21 @@ the_continued_fraction_digits_of_pi__by_Chudnovsky_algorithm ()
         whole_input_lhs = the_continued_fraction_of_426880_by_sqrt10005 ()
         whole_input_rhs = the_pi_inputs ()
 
+
+
+
+the_continued_fraction_digits_of_pi__by_Chudnovsky_algorithm__from_interval_refine_times i
+    = div_BiLFT oconfigure whole_input_lhs whole_input_rhs
+    where
+        oconfigure = Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction False
+        whole_input_lhs = the_continued_fraction_of_426880_by_sqrt10005 ()
+        whole_input_rhs = the_pi_inputs__ver2_2__from_interval_refine_times i
+
+
+main_i :: Int -> IO ()
+main_i i = do
+    print "pi -> SimpleContinuedFraction by Chudnovsky_algorithm"
+    mapM_ print . zip [0..] $ the_continued_fraction_digits_of_pi__by_Chudnovsky_algorithm__from_interval_refine_times i
 
 main :: IO ()
 main = do
