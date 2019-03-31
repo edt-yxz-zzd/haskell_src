@@ -1,0 +1,15 @@
+
+streaming continued fraction digits of sqrt of x
+    # generalized_continued_fraction -> regular_continued_fraction
+    x = a^2 + r
+
+    partial_numerators =      [r,  r  ..]
+    partial_denominators = [a, 2*a,2*a..]
+    sqrt(x) = a + r/(2*a + r/(2*a + ...))
+
+
+FloorSqrt update:
+    like python:
+        nn_ns.math_nn.continued_fraction.continued_fraction_digits_of_quadratic_surd
+
+

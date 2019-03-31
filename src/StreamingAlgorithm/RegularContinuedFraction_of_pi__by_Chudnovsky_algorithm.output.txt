@@ -1,4 +1,4 @@
-"pi -> SimpleContinuedFraction by Chudnovsky_algorithm"
+"pi -> RegularContinuedFraction by Chudnovsky_algorithm"
 (0,3)
 (1,7)
 (2,15)

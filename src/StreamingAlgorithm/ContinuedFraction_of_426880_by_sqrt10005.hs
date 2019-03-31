@@ -13,10 +13,10 @@ module ContinuedFraction_of_426880_by_sqrt10005
     ,periodic_digits_of_426880_by_sqrt10005
     )
 where
-import SimpleContinuedFraction
+import RegularContinuedFraction
 
 continued_fraction_of_426880_by_sqrt10005
-    = unsafe_mkSimpleContinuedFraction (head _all_digits) (tail _all_digits)
+    = unsafe_mkRegularContinuedFraction (head _all_digits) (tail _all_digits)
 
 -- 426880_by_sqrt10005
 non_periodic_digits_of_426880_by_sqrt10005 = non_periodic_digits

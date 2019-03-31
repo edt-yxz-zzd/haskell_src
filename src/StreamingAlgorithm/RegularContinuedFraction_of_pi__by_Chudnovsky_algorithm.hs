@@ -3,7 +3,7 @@
 
 
 usage:
-    runghc SimpleContinuedFraction_of_pi__by_Chudnovsky_algorithm.hs
+    runghc RegularContinuedFraction_of_pi__by_Chudnovsky_algorithm.hs
 
 see:
     "NOTE/continued fraction/Arithmetic with Continued Fractions.txt"
@@ -169,7 +169,7 @@ ver2_2: update interval
 
 
 -}
-module SimpleContinuedFraction_of_pi__by_Chudnovsky_algorithm
+module RegularContinuedFraction_of_pi__by_Chudnovsky_algorithm
     (the_continued_fraction_of_426880_by_sqrt10005
     ,the_pi_inputs
     ,the_continued_fraction_digits_of_pi__by_Chudnovsky_algorithm
@@ -193,8 +193,8 @@ import UnsafeFromList
 import Interval
 import LinearFractionalTransformation
 
-import SimpleContinuedFraction
-import Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction
+import RegularContinuedFraction
+import Configure4LFT4StreamingAlgorithm_RegularContinuedFraction
 import State4BiLFT4StreamingAlgorithm_with (div_BiLFT)
 import LinearFractionalTransformationIntervalPairs
 import Data.Ratio
@@ -203,7 +203,7 @@ import Control.Monad (forM_, mapM_)
 
 
 the_continued_fraction_of_426880_by_sqrt10005 ()
-    = unsafe_mkSimpleContinuedFraction h ts
+    = unsafe_mkRegularContinuedFraction h ts
     where
         (h:ts) = continued_fraction_digits_of_sqrt_with_coeffs Sqrt_with_coeffs
                     {the_N = 10005
@@ -216,7 +216,8 @@ the_pi_inputs = the_pi_inputs__ver2_2
 
 -- ver2_2: update interval
 the_pi_inputs__ver2_2 ()
-    = the_pi_inputs__ver2_2__from_interval_refine_times 2
+    -- Ak Ck is not exact, 2 is too much
+    = the_pi_inputs__ver2_2__from_interval_refine_times 1
 the_pi_inputs__ver2_2__from_interval_refine_times
     :: Int -> LinearFractionalTransformationIntervalPairs
 the_pi_inputs__ver2_2__from_interval_refine_times interval_refine_times
@@ -457,7 +458,7 @@ the_pi_inputs__ver1 () = LinearFractionalTransformationIntervalPairs
 the_continued_fraction_digits_of_pi__by_Chudnovsky_algorithm ()
     = div_BiLFT oconfigure whole_input_lhs whole_input_rhs
     where
-        oconfigure = Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction False
+        oconfigure = Configure4LFT4StreamingAlgorithm_RegularContinuedFraction False
         whole_input_lhs = the_continued_fraction_of_426880_by_sqrt10005 ()
         whole_input_rhs = the_pi_inputs ()
 
@@ -467,18 +468,18 @@ the_continued_fraction_digits_of_pi__by_Chudnovsky_algorithm ()
 the_continued_fraction_digits_of_pi__by_Chudnovsky_algorithm__from_interval_refine_times i
     = div_BiLFT oconfigure whole_input_lhs whole_input_rhs
     where
-        oconfigure = Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction False
+        oconfigure = Configure4LFT4StreamingAlgorithm_RegularContinuedFraction False
         whole_input_lhs = the_continued_fraction_of_426880_by_sqrt10005 ()
         whole_input_rhs = the_pi_inputs__ver2_2__from_interval_refine_times i
 
 
 main_i :: Int -> IO ()
 main_i i = do
-    print "pi -> SimpleContinuedFraction by Chudnovsky_algorithm"
+    print "pi -> RegularContinuedFraction by Chudnovsky_algorithm"
     mapM_ print . zip [0..] $ the_continued_fraction_digits_of_pi__by_Chudnovsky_algorithm__from_interval_refine_times i
 
 main :: IO ()
 main = do
-    print "pi -> SimpleContinuedFraction by Chudnovsky_algorithm"
+    print "pi -> RegularContinuedFraction by Chudnovsky_algorithm"
     mapM_ print . zip [0..] $ the_continued_fraction_digits_of_pi__by_Chudnovsky_algorithm ()
     -- print $ the_continued_fraction_digits_of_pi__by_Chudnovsky_algorithm ()

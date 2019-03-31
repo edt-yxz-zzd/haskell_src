@@ -1,11 +1,11 @@
 
-module Test__Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction
+module Test__Configure4LFT4StreamingAlgorithm_RegularContinuedFraction
     (main
     )
 where
 
-import SimpleContinuedFraction
-import Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction
+import RegularContinuedFraction
+import Configure4LFT4StreamingAlgorithm_RegularContinuedFraction
 import RadixBaseFloatNumber (unsafe_mkRadixBaseFloatNumber)
 import State4LFT4StreamingAlgorithm_with (streaming_LFT)
 import RadixBase (unsafe_mkRadixBase)
@@ -17,11 +17,11 @@ inv_e_base7 = unsafe_mkRadixBaseFloatNumber 7   0 [2,4,0,1,1,6,4,3,5,2]
 
 main :: IO ()
 main = do
-    let oconfigure = Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction False
-    print "inv_e_base3 -> SimpleContinuedFraction"
+    let oconfigure = Configure4LFT4StreamingAlgorithm_RegularContinuedFraction False
+    print "inv_e_base3 -> RegularContinuedFraction"
     print $ streaming_LFT oconfigure inv_e_base3
 
-    print "inv_e_base7 -> SimpleContinuedFraction"
+    print "inv_e_base7 -> RegularContinuedFraction"
     print $ streaming_LFT oconfigure inv_e_base7
 
 

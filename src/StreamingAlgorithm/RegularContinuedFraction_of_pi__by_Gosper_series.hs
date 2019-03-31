@@ -3,7 +3,7 @@
 
 
 usage:
-    runghc SimpleContinuedFraction_of_pi__by_Gosper_series.hs
+    runghc RegularContinuedFraction_of_pi__by_Gosper_series.hs
 
 see:
     "NOTE/continued fraction/[A001203]pi.txt"
@@ -22,7 +22,7 @@ see:
         fact: st(27/5 * k - 12/5) <= digit <= st(27/5 * k - (6/5)^3)
 
 -}
-module SimpleContinuedFraction_of_pi__by_Gosper_series
+module RegularContinuedFraction_of_pi__by_Gosper_series
     (the_pi_inputs
     )
 where
@@ -32,8 +32,8 @@ import UnsafeFromList
 import Interval
 import LinearFractionalTransformation
 
-import SimpleContinuedFraction
-import Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction
+import RegularContinuedFraction
+import Configure4LFT4StreamingAlgorithm_RegularContinuedFraction
 import State4LFT4StreamingAlgorithm_with (streaming_LFT)
 import LinearFractionalTransformationIntervalPairs
 
@@ -68,12 +68,12 @@ the_pi_inputs () = LinearFractionalTransformationIntervalPairs
 the_continued_fraction_digits_of_pi__by_Gosper_series ()
     = streaming_LFT oconfigure whole_input
     where
-        oconfigure = Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction False
+        oconfigure = Configure4LFT4StreamingAlgorithm_RegularContinuedFraction False
         whole_input = the_pi_inputs ()
 
 
 main :: IO ()
 main = do
-    print "pi -> SimpleContinuedFraction by Gosper_series"
+    print "pi -> RegularContinuedFraction by Gosper_series"
     mapM_ print . zip [0..] $ the_continued_fraction_digits_of_pi__by_Gosper_series ()
     -- print $ the_continued_fraction_digits_of_pi__by_Gosper_series ()

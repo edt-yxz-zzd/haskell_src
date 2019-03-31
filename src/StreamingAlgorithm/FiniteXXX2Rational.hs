@@ -3,7 +3,7 @@ module FiniteXXX2Rational
     (finite_XXX2Rational
     ,finite_RadixBaseFloatNumber2Rational
     ,finite_EngelExpansion2Rational
-    ,finite_SimpleContinuedFraction2Rational
+    ,finite_RegularContinuedFraction2Rational
     )
 where
 
@@ -15,11 +15,11 @@ import Configure4LFT4StreamingAlgorithm
 
 import Configure4LFT4StreamingAlgorithm_RadixBase ()
 import Configure4LFT4StreamingAlgorithm_EngelExpansion ()
-import Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction ()
+import Configure4LFT4StreamingAlgorithm_RegularContinuedFraction ()
 
 import RadixBaseFloatNumber
 import EngelExpansion
-import SimpleContinuedFraction
+import RegularContinuedFraction
 
 oconfigure = Configure4LFT4StreamingAlgorithm_Rational
 
@@ -35,8 +35,8 @@ finite_RadixBaseFloatNumber2Rational = finite_XXX2Rational
 finite_EngelExpansion2Rational :: EngelExpansion -> Rational
 finite_EngelExpansion2Rational = finite_XXX2Rational
 
-finite_SimpleContinuedFraction2Rational :: SimpleContinuedFraction -> Rational
-finite_SimpleContinuedFraction2Rational = finite_XXX2Rational
+finite_RegularContinuedFraction2Rational :: RegularContinuedFraction -> Rational
+finite_RegularContinuedFraction2Rational = finite_XXX2Rational
 
 
 

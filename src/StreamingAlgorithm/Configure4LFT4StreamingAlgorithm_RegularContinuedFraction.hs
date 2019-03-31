@@ -1,12 +1,12 @@
 
 {-# LANGUAGE TypeFamilies #-}
 
-module Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction
-    (Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction(..)
+module Configure4LFT4StreamingAlgorithm_RegularContinuedFraction
+    (Configure4LFT4StreamingAlgorithm_RegularContinuedFraction(..)
     )
 where
 
-import SimpleContinuedFraction
+import RegularContinuedFraction
 import ZipExceptLast (zip_except_last)
 import Interval
 import LinearFractionalTransformation
@@ -17,16 +17,16 @@ import Configure4LFT4StreamingAlgorithm
     )
 
 
-data Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction
-    = Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction Bool
+data Configure4LFT4StreamingAlgorithm_RegularContinuedFraction
+    = Configure4LFT4StreamingAlgorithm_RegularContinuedFraction Bool
     -- after init?
     deriving (Show, Read, Eq, Ord)
 
-instance OutputConfigure4LFT4StreamingAlgorithm Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction where
+instance OutputConfigure4LFT4StreamingAlgorithm Configure4LFT4StreamingAlgorithm_RegularContinuedFraction where
     type OutputType4OutputConfigure4LFT4StreamingAlgorithm
-        Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction = Integer
+        Configure4LFT4StreamingAlgorithm_RegularContinuedFraction = Integer
     maybe_make_output
-        (Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction after_init)
+        (Configure4LFT4StreamingAlgorithm_RegularContinuedFraction after_init)
         rational
         = if after_init
             then if rational == 0 then Nothing else
@@ -43,7 +43,7 @@ instance OutputConfigure4LFT4StreamingAlgorithm Configure4LFT4StreamingAlgorithm
         --  x=1/y - digit = (-digit*y+1)/y
         --  0 <= x <= 1
         where
-            (Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction after_init
+            (Configure4LFT4StreamingAlgorithm_RegularContinuedFraction after_init
                 ) = oconfigure
             init_mx = LinearFractionalTransformation
                     (LinearTransformation 1 (-digit))
@@ -51,11 +51,11 @@ instance OutputConfigure4LFT4StreamingAlgorithm Configure4LFT4StreamingAlgorithm
             later_mx = LinearFractionalTransformation
                     (LinearTransformation (-digit) 1)
                     (LinearTransformation 1 0)
-            oconfigure' = Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction True
+            oconfigure' = Configure4LFT4StreamingAlgorithm_RegularContinuedFraction True
 
 
-instance InputConfigure4LFT4StreamingAlgorithm Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction where
-    type InputType4InputConfigure4LFT4StreamingAlgorithm Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction = Integer
+instance InputConfigure4LFT4StreamingAlgorithm Configure4LFT4StreamingAlgorithm_RegularContinuedFraction where
+    type InputType4InputConfigure4LFT4StreamingAlgorithm Configure4LFT4StreamingAlgorithm_RegularContinuedFraction = Integer
 
     input2LFT_ex iconfigure digit = if after_init
         then (later_mx, iconfigure)
@@ -64,7 +64,7 @@ instance InputConfigure4LFT4StreamingAlgorithm Configure4LFT4StreamingAlgorithm_
             -- init = matrix[1, floor; 0, 1]
             -- next digit = matrix[0,1;1,digit]
             -- 0 <= x <= 1
-            (Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction after_init
+            (Configure4LFT4StreamingAlgorithm_RegularContinuedFraction after_init
                 ) = iconfigure
             init_mx = LinearFractionalTransformation
                     (LinearTransformation 1 digit)
@@ -72,25 +72,25 @@ instance InputConfigure4LFT4StreamingAlgorithm Configure4LFT4StreamingAlgorithm_
             later_mx = LinearFractionalTransformation
                     (LinearTransformation 0 1)
                     (LinearTransformation 1 digit)
-            iconfigure' = Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction True
+            iconfigure' = Configure4LFT4StreamingAlgorithm_RegularContinuedFraction True
 
 
-instance WholeInputData4LFT4StreamingAlgorithm SimpleContinuedFraction where
-    type InputConfigureType4WholeInputData4LFT4StreamingAlgorithm SimpleContinuedFraction = Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction
+instance WholeInputData4LFT4StreamingAlgorithm RegularContinuedFraction where
+    type InputConfigureType4WholeInputData4LFT4StreamingAlgorithm RegularContinuedFraction = Configure4LFT4StreamingAlgorithm_RegularContinuedFraction
     initial_input_configure_LFT
-        (SimpleContinuedFraction floor_part float_part)
+        (RegularContinuedFraction floor_part float_part)
         = iconfigure where
-        iconfigure = Configure4LFT4StreamingAlgorithm_SimpleContinuedFraction False
+        iconfigure = Configure4LFT4StreamingAlgorithm_RegularContinuedFraction False
 
     inputs_LFT continued_fraction
         = inputs where
-        (floor_part, digits) = unSimpleContinuedFraction continued_fraction
+        (floor_part, digits) = unRegularContinuedFraction continued_fraction
         -- bug: inputs = [(d, Inside 0 1) | d <- floor_part:digits]
         all_digits = floor_part:digits
         inputs = zip_except_last all_digits (repeat $ Inside 0 1) (Inside 0 0)
 
     initial_state_ex_LFT
-        (SimpleContinuedFraction floor_part float_part)
+        (RegularContinuedFraction floor_part float_part)
         = (mempty, (Inside floor_part_r $ floor_part_r+1))
         where
             floor_part_r = toRational floor_part
